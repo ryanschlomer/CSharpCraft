@@ -1,0 +1,146 @@
+﻿@page "/grassworld"
+@inject IJSRuntime JSRuntime
+@inject ChunkService ChunkService
+
+<h3>3D World of Grass</h3>
+<button @onclick="GoFullScreen">Go Full Screen</button>
+<div id="fullscreenContainer">
+    <canvas id="canvas3D"></canvas>
+
+    <!-- Display coordinates -->
+    <div style="position: fixed; top: 10px; left: 10px; z-index: 1000;">
+        <span id="cameraPosition" style="font-size: 20px; font-weight: bold; color: white;">Camera Position: (X: -, Y: -, Z: -)</span>
+    </div>
+
+    <div id="controls" style="position: fixed; bottom: 10%; left: 10px; z-index: 1000; display: grid; grid-template-columns: repeat(3, auto); grid-gap: 10px;">
+        <div style="grid-column: 2 / 3; grid-row: 1 / 2;"><button id="upButton">⬆️</button></div>
+        <div style="grid-column: 1 / 2; grid-row: 2 / 3;"><button id="leftButton">⬅️</button></div>
+        <div style="grid-column: 3 / 4; grid-row: 2 / 3;"><button id="rightButton">➡️</button></div>
+        <div style="grid-column: 2 / 3; grid-row: 3 / 4;"><button id="downButton">⬇️</button></div>
+    </div>
+
+
+
+</div>
+
+
+
+
+
+@code {
+    private static CameraInfo _cameraInfo = new CameraInfo();
+    private static Vector3 _previousCameraPosition = new Vector3(); // Initialize with default or initial camera position
+    private (int, int) _previousChunkCoords = (int.MaxValue, int.MaxValue);
+
+    private HashSet<string> _visibleChunkIds = new HashSet<string>();
+
+
+    private Timer _timer;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("initialize3DScene", "canvas3D");
+            await JSRuntime.InvokeVoidAsync("adjustCanvasSize", "canvas3D");
+
+            // Set the camera position at (0, 0, 0)
+            await JSRuntime.InvokeVoidAsync("setCameraPosition", 0, 0, 0);
+
+            
+
+            // Load or create chunks around the camera position
+            await ChunkService.LoadChunksAroundAsync(0, 0, 2); // Adjust the radius as needed
+
+            // Find a suitable spawn point within the loaded chunks
+            Vector3Int spawnPoint = ChunkService.FindSpawnPoint();
+            await JSRuntime.InvokeVoidAsync("setCameraPosition", spawnPoint.X, spawnPoint.Y, spawnPoint.Z);
+
+            await JSRuntime.InvokeVoidAsync("addTouchListeners", "controls");
+
+            // Start the timer after everything is initialized
+            _timer = new Timer(async _ =>
+            {
+                await InvokeAsync(UpdateVisibleChunks);
+            }, null, 1000, 1000); // Delay start by 1000ms and repeat every 1000ms
+        }
+    }
+
+
+
+    private async Task LoadInitialChunks()
+    {
+        // Load initial chunks asynchronously
+        await Task.WhenAll(Enumerable.Range(-2, 5).SelectMany(x =>
+            Enumerable.Range(-2, 5).Select(z =>
+                ChunkService.GetOrCreateChunkAsync(x, z))));
+    }
+
+    private async Task UpdateVisibleChunks()
+    {
+        (int, int) currentChunkCoords = (
+            ChunkService.GetChunkCoordinate(_cameraInfo.Position.X, ChunkService.MaxChunkSize),
+            ChunkService.GetChunkCoordinate(_cameraInfo.Position.Z, ChunkService.MaxChunkSize)
+        );
+
+        if (_previousChunkCoords != currentChunkCoords)
+        {
+            // Load chunks around the current camera position
+            await ChunkService.LoadChunksAroundAsync(currentChunkCoords.Item1, currentChunkCoords.Item2, 1);
+
+            var chunksData = await Task.WhenAll(ChunkService.GetChunksForCamera(_cameraInfo).Select(async chunk =>
+            {
+                return new
+                {
+                    ChunkX = chunk.ChunkX,
+                    ChunkZ = chunk.ChunkZ,
+                    ChunkId = chunk.ChunkID,
+                    Blocks = chunk.GetBlocksData(),
+                    Size = ChunkService.MaxChunkSize,
+                    Height = ChunkService.MaxChunkHeight
+                };
+            }));
+
+            var newVisibleChunkIds = new HashSet<string>(chunksData.Select(c => c.ChunkId));
+            var chunksToRemove = _visibleChunkIds.Except(newVisibleChunkIds).ToList();
+            var newChunks = chunksData.Where(c => !_visibleChunkIds.Contains(c.ChunkId)).ToList();
+
+            var updatePayload = new
+            {
+                NewChunks = newChunks,
+                ChunksToRemove = chunksToRemove
+            };
+
+            var jsonUpdatePayload = JsonSerializer.Serialize(updatePayload);
+            await JSRuntime.InvokeVoidAsync("renderChunks", "canvas3D", jsonUpdatePayload);
+
+            _visibleChunkIds = newVisibleChunkIds; // Update the currently visible chunks
+            _previousChunkCoords = currentChunkCoords; // Update the stored chunk coordinates
+        }
+    }
+
+
+
+    [JSInvokable]
+    public static async Task UpdateCameraInfo(float x, float y, float z)
+    {
+        Vector3 newPosition = new Vector3(x, y, z);
+
+        // Update the global camera info and the previous position
+        _cameraInfo.Position = newPosition;
+        _previousCameraPosition = newPosition;
+    }
+
+ 
+
+    private async Task GoFullScreen()
+    {
+        await JSRuntime.InvokeVoidAsync("requestFullScreen", "fullscreenContainer");
+    }
+
+    
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+}

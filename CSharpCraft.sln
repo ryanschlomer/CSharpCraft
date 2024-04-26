@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33424.131
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpCraft", "CSharpCraft\CSharpCraft.csproj", "{A1413592-ECA3-4AEE-89D2-9E29765078E9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A1413592-ECA3-4AEE-89D2-9E29765078E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1413592-ECA3-4AEE-89D2-9E29765078E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1413592-ECA3-4AEE-89D2-9E29765078E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1413592-ECA3-4AEE-89D2-9E29765078E9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AD621755-466D-410B-85F1-C05DD2DA2CAF}
+	EndGlobalSection
+EndGlobal
