@@ -11,7 +11,7 @@ namespace CSharpCraft.Clases
     {
         private Dictionary<(int, int), Chunk> loadedChunks;
         public static int MaxChunkSize { get; } = 16;  // Standard size for simplicity
-        public static int MaxChunkHeight { get; } = 16;  // Height for each chunk
+        public static int MaxChunkHeight { get; } = 32;  // Height for each chunk
 
         // Create a noise generator
         public static FastNoise Noise { get; set; }
