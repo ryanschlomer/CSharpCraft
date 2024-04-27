@@ -206,7 +206,7 @@ namespace CSharpCraft.Clases
                     //Set blocks in the chunk
                     for (int y = 0; y < height; y++)
                     {
-                        blocks[x, y, z] = (y < height - 1) ? new Block(4, globalX, y, globalZ) : new Block(1, globalX, y, globalZ);
+                        blocks[x, y, z] = (y < height - 1) ? new Block(BlockType.Dirt, globalX, y, globalZ) : new Block(BlockType.Grass, globalX, y, globalZ);
                     }
 
                     //this code doesn;t work...
@@ -248,7 +248,7 @@ namespace CSharpCraft.Clases
                                 double distance = Math.Sqrt(Math.Pow(x - centerX, 2) + Math.Pow(z - centerZ, 2) + Math.Pow(y - baseHeight, 2));
                                 if (distance <= radius)
                                 {
-                                    blocks[x, y, z] = new Block(5, x, y, z); // Set block type to 5 (rock)
+                                    blocks[x, y, z] = new Block(BlockType.Stone, x, y, z); // Set block type to 5 (rock)
                                 }
                             }
                         }
@@ -272,14 +272,14 @@ namespace CSharpCraft.Clases
                             baseHeight++;
                         }
                         baseHeight--; // Adjust to get the top block's position
-                        if (blocks[x, baseHeight, z].Type == 1) //block must be grass
+                        if (blocks[x, baseHeight, z].Type == BlockType.Grass) //block must be grass
                         {
                             if (baseHeight + 5 < MaxChunkSize) // Ensure there's enough space for the tree
                             {
                                 // Create trunk (block type 2)
                                 for (int y = baseHeight + 1; y <= baseHeight + 5; y++) // Start from baseHeight + 1
                                 {
-                                    blocks[x, y, z] = new Block(2, x, y, z); // trunk blocks
+                                    blocks[x, y, z] = new Block(BlockType.Trunk, x, y, z); // trunk blocks
                                 }
 
                                 // Create a simple leaf canopy above the trunk
@@ -290,7 +290,7 @@ namespace CSharpCraft.Clases
                                         for (int dy = 4; dy <= 6; dy++)
                                         {
                                             if (x + dx < MaxChunkSize && z + dz < MaxChunkSize)
-                                                blocks[x + dx, baseHeight + dy, z + dz] = new Block(3, x + dx, baseHeight + dy, z + dz); // leaf blocks
+                                                blocks[x + dx, baseHeight + dy, z + dz] = new Block(BlockType.Leaves, x + dx, baseHeight + dy, z + dz); // leaf blocks
                                         }
                                     }
                                 }

@@ -9,7 +9,7 @@
 
         public bool BlockNeedsUpdating { get; set; } = false;
 
-        public int Type { get; set; }
+        public BlockType Type { get; set; }
         public static int[][] NeighborOffsets = new int[][]
         {
         new int[] { 0, 1, 0 }, new int[] { 0, -1, 0 },
@@ -17,7 +17,7 @@
         new int[] { 0, 0, 1 }, new int[] { 0, 0, -1 }
         };
 
-        public Block(int type, int x, int y, int z)
+        public Block(BlockType type, int x, int y, int z)
         {
             Type = type;
             X = x;
@@ -25,6 +25,16 @@
             Z = z;
             BlockNeedsUpdating = true;
         }
+    }
+
+    public enum BlockType
+    {
+        Air = 0,
+        Grass = 1,
+        Trunk = 2,
+        Leaves = 3,
+        Dirt = 4,
+        Stone = 5
     }
 }
 

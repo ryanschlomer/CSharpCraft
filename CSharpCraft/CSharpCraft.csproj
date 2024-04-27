@@ -7,6 +7,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="wwwroot\js\TouchControls.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="wwwroot\js\TouchControls.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\js\TouchControls.js" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="VL.FastNoise" Version="1.0.2" />
   </ItemGroup>
 

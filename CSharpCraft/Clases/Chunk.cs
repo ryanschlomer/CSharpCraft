@@ -19,7 +19,7 @@ namespace CSharpCraft.Clases
     
         public int ChunkX { get; }
         public int ChunkZ { get; }
-        private Block[] blocks;
+        public Block[] blocks { get; private set; }
         public string ChunkID { get; private set; }  // Chunk ID property
 
         public ChunkType Type { get; set; }
