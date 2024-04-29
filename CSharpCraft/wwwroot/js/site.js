@@ -3,7 +3,7 @@ var scene, camera, renderer;
 var controls; // Controls initialized later
 var keyStates = {};
 var textureLoader = new THREE.TextureLoader();
-var defaultMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF }); // White material
+var defaultMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 }); 
 
 var blockTextures = {}; // Stores materials for each block type
 
@@ -26,7 +26,25 @@ function initialize3DScene(canvasId) {
 }
 
 
+async function applyMaterialsToMesh() {
+    for (const mesh of scene.children) {
+        if (mesh instanceof THREE.InstancedMesh) {
+            const blockType = mesh.userData.blockType;
+            const material = await getOrCreateMaterial({ Type: blockType });
+            mesh.material = material;
+            mesh.material.needsUpdate = true; // Trigger a material update
+        }
+    }
+}
+
+
+
 async function getOrCreateMaterial(block) {
+    if (!block || !block.Type) {
+        // If block is null or its 'Type' property is not defined, return default material
+        return defaultMaterial;
+    }
+
     if (!blockTextures[block.Type]) {
         // Use default material temporarily
         blockTextures[block.Type] = defaultMaterial;
@@ -41,7 +59,6 @@ async function getOrCreateMaterial(block) {
             // Update scene materials to apply the new materials to existing blocks
             updateSceneMaterials(block.Type);
         } catch (error) {
-            //console.error("Error loading textures for block type:", block.Type, error);
             // Return default material in case of error
             return defaultMaterial;
         }
@@ -49,10 +66,6 @@ async function getOrCreateMaterial(block) {
     // Return the material for the block (default or loaded)
     return blockTextures[block.Type];
 }
-
-
-
-
 
 
 function fetchTextureData(type) {
@@ -122,118 +135,237 @@ function updateSceneMaterials(blockType) {
 }
 
 function clearChunks(chunksToRemove) {
-    //console.log("Chunks to remove:", chunksToRemove);
+    console.log("Chunks to remove:", chunksToRemove);  // Log which chunks are expected to be removed
 
     if (!scene) {
-        //console.error("Scene is undefined. Cannot traverse.");
+        console.error("Scene is undefined. Cannot traverse.");
         return;
     }
 
     const objectsToRemove = [];
 
     scene.traverse((object) => {
+        console.log(`Checking object with name: ${object.name}`); // Log every object being checked
+        console.log("Is chunk: ", object.userData.isChunk) //this is null
+        console.log("object.name: ", object.name)
         if (object.userData.isChunk && chunksToRemove.includes(object.name)) {
             objectsToRemove.push(object);
+            console.log(`Marked for removal: ${object.name}`); // Log when an object is marked for removal
+            //The line above is not logging
         }
     });
 
+    console.log(`Identified ${objectsToRemove.length} chunks for removal.`);
+
     objectsToRemove.forEach(object => {
-        // Dispose of the material and textures if they exist
         if (object.material) {
             if (Array.isArray(object.material)) {
-                // For objects with multiple materials
                 object.material.forEach(mat => {
-                    if (mat.map) mat.map.dispose();
+                    if (mat.map) {
+                        mat.map.dispose();
+                        console.log(`Disposed map for material.`);
+                    }
                     mat.dispose();
+                    console.log(`Disposed material.`);
                 });
             } else {
-                // For objects with a single material
-                if (object.material.map) object.material.map.dispose();
+                if (object.material.map) {
+                    object.material.map.dispose();
+                    console.log(`Disposed single map for material.`);
+                }
                 object.material.dispose();
+                console.log(`Disposed single material.`);
             }
         }
 
-        // Dispose of the geometry
         if (object.geometry) {
             object.geometry.dispose();
+            console.log(`Disposed geometry.`);
         }
 
-        // Finally, remove the object from the scene
+        // Remove the object from the scene
         scene.remove(object);
+        console.log(`Removed object: ${object.name}`);
     });
 
-    //console.log("Removed objects:", objectsToRemove.length);
+    console.log(`Removed ${objectsToRemove.length} objects from scene.`);
 }
 
 
+
+
+//function clearChunks(chunksToRemove) {
+//    if (!scene) {
+//        console.error("Scene is undefined. Cannot traverse.");
+//        return;
+//    }
+
+//    const objectsToRemove = [];
+
+//    scene.traverse((object) => {
+//        if (object.userData.isChunk && chunksToRemove.includes(object.name)) {
+//            objectsToRemove.push(object);
+//        }
+//    });
+
+//    objectsToRemove.forEach(object => {
+//        // Dispose of the material and textures if they exist
+//        if (object.material) {
+//            if (Array.isArray(object.material)) {
+//                // For objects with multiple materials
+//                object.material.forEach(mat => {
+//                    if (mat.map) mat.map.dispose();  // Dispose of texture
+//                    mat.dispose();  // Dispose of material
+//                });
+//            } else {
+//                // For objects with a single material
+//                if (object.material.map) object.material.map.dispose();
+//                object.material.dispose();
+//            }
+//        }
+
+//        // Dispose of the geometry
+//        if (object.geometry) {
+//            object.geometry.dispose();
+//        }
+
+//        // Finally, remove the object from the scene
+//        scene.remove(object);
+//    });
+
+//    console.log("Removed objects:", objectsToRemove.length);
+//}
+
+
+function populateInstanceBufferAttributes(blocksData, positionAttribute, scaleAttribute) {
+    const instanceCount = blocksData.length;
+    for (let i = 0; i < instanceCount; i++) {
+        const block = blocksData[i];
+        if (block) {
+            const x = block.X;
+            const y = block.Y;
+            const z = block.Z;
+            positionAttribute.array[i * 3 + 0] = x;
+            positionAttribute.array[i * 3 + 1] = y;
+            positionAttribute.array[i * 3 + 2] = z;
+            scaleAttribute.array[i * 3 + 0] = 1;  // Assuming uniform scale
+            scaleAttribute.array[i * 3 + 1] = 1;
+            scaleAttribute.array[i * 3 + 2] = 1;
+        }
+    }
+    positionAttribute.needsUpdate = true;
+    scaleAttribute.needsUpdate = true;
+
+    //console.log("Meshes prepared:", blocksData.length);
+}
+
+function groupBlocksByType(blocks) {
+    const groups = {};
+    blocks.forEach(block => {
+        if (block && block.Type) {
+            if (!groups[block.Type]) {
+                groups[block.Type] = [];
+            }
+            groups[block.Type].push(block);
+        }
+    });
+    return groups;
+}
+
 const chunkQueue = []; // Queue to store chunks for sequential rendering
+
+
+//function renderChunks(canvasId, jsonUpdatePayload) {
+//    const updatePayload = JSON.parse(jsonUpdatePayload);
+//    clearChunks(updatePayload.ChunksToRemove); // Remove old chunks based on IDs
+
+//    // Enqueue new chunks for rendering
+//    updatePayload.NewChunks.forEach(chunk => {
+//        chunkQueue.push(chunk);
+//    });
+
+//    // If no rendering is ongoing, start rendering the next chunk
+//    if (chunkQueue.length === updatePayload.NewChunks.length) {
+//        renderNextChunk();
+//        applyMaterialsToMesh();  // Call this after chunks are rendered
+//    }
+//}
 
 function renderChunks(canvasId, jsonUpdatePayload) {
     const updatePayload = JSON.parse(jsonUpdatePayload);
-    clearChunks(updatePayload.ChunksToRemove); // Remove old chunks based on IDs
+    clearChunks(updatePayload.ChunksToRemove);
 
-    // Enqueue new chunks for rendering
+
     updatePayload.NewChunks.forEach(chunk => {
         chunkQueue.push(chunk);
     });
 
-    // If no rendering is ongoing, start rendering the next chunk
     if (chunkQueue.length === updatePayload.NewChunks.length) {
         renderNextChunk();
+        setTimeout(() => {
+            applyMaterialsToMesh();  // Delay material application to ensure textures are loaded
+        }, 1000); // Adjust delay based on typical load times or dynamically check load status
     }
 }
 
+
+
+
 async function renderNextChunk() {
-    if (chunkQueue.length === 0) return; // No more chunks to render
+    if (chunkQueue.length === 0) return;
 
-    const chunk = chunkQueue.shift(); // Dequeue the next chunk
-    const chunkSize = chunk.Size;
+    const chunk = chunkQueue.shift();
+    const blocksGroupedByType = groupBlocksByType(chunk.Blocks);
 
-    // Loop through all blocks within the chunk
-    for (let index = 0; index < chunk.Blocks.length; index++) {
-        const block = chunk.Blocks[index];
+    Object.keys(blocksGroupedByType).forEach(async (blockType) => {
+        const blocks = blocksGroupedByType[blockType];
+        const material = await getOrCreateMaterial({ Type: blockType }) || defaultMaterial;
+        const geometry = blockGeometry;
+        const instancedMesh = new THREE.InstancedMesh(geometry, material, blocks.length);
+        
 
-        if (block) {
-            const x = index % chunkSize;
-            const y = Math.floor(index / (chunkSize * chunkSize));
-            const z = Math.floor((index % (chunkSize * chunkSize)) / chunkSize);
+        blocks.forEach((block, index) => {
+            const dummy = new THREE.Object3D();
+            dummy.position.set(block.X, block.Y, block.Z);
+            dummy.updateMatrix();
+            instancedMesh.setMatrixAt(index, dummy.matrix);
+        });
 
-            // Create or get material for the block
-            const material = await getOrCreateMaterial(block);
+        instancedMesh.name = chunk.ChunkId; // This should match the ChunkID format
+        console.log("instancedMesh.name: ", instancedMesh.name);
+        instancedMesh.userData.blockType = blockType;
+        instancedMesh.userData.isChunk = true;
+        instancedMesh.instanceMatrix.needsUpdate = true;
+        scene.add(instancedMesh);
+    });
 
-
-            // Create mesh for the block
-            const mesh = new THREE.Mesh(blockGeometry, material);
-            mesh.position.set(x + chunk.ChunkX * chunkSize, y, z + chunk.ChunkZ * chunkSize);
-            mesh.blockType = block.Type;
-            mesh.name = chunk.ChunkId; // Use Chunk ID as the name for easier removal
-
-            mesh.userData.isChunk = true;
-
-            mesh.geometry.computeBoundingSphere();
-
-
-            scene.add(mesh);
-
-            if (blockTextures[block.Type] !== defaultMaterial) {
-                mesh.material = blockTextures[block.Type];
-                mesh.material.needsUpdate = true;
-            }
-        }
-    }
-
-    // Render the next chunk after a short delay to prevent blocking the main thread
+    // Optional: continue processing other chunks
     setTimeout(renderNextChunk, 10);
 }
 
 
 
+//let frameCount = 0;
+//let renderedObjectsCount = 0;
+
+const axesHelper = new THREE.AxesHelper(5);
+
+const gridHelper = new THREE.GridHelper(100, 10);
+
+
 function animate() {
+
+    scene.add(gridHelper);
+    scene.add(axesHelper);
+
     requestAnimationFrame(animate);
     updateCameraPosition();
 
+    renderedObjectsCount = 0;
+
     scene.traverse(object => {
         if (object.isMesh) {
+            //renderedObjectsCount++;
             if (!object.material || object.material.map === undefined) {
                 object.material = defaultMaterial; // Fallback to default material
             }
@@ -243,7 +375,20 @@ function animate() {
     renderer.render(scene, camera);
 
     sendCameraPositionToBlazor();
+
+    //// Log rendering stats every 60 frames
+
+    //if (frameCount % 60 === 0) {
+    //    console.log("Objects rendered in last frame:", renderedObjectsCount);
+    //    console.log("Draw calls:", renderer.info.render.calls);
+    //    console.log("Triangles rendered:", renderer.info.render.triangles);
+    //}
+
+    //frameCount++;
 }
+
+
+
 
 
 

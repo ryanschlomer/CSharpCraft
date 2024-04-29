@@ -46,10 +46,10 @@
             // Set the camera position at (0, 0, 0)
             await JSRuntime.InvokeVoidAsync("setCameraPosition", 0, 0, 0);
 
-            
 
-            // Load or create chunks around the camera position
-            await ChunkService.LoadChunksAroundAsync(0, 0, 2); // Adjust the radius as needed
+
+            // Load or create initial chunks around the camera position
+            await ChunkService.LoadChunksAroundAsync(0, 0, 4); // Adjust the radius as needed
 
             // Find a suitable spawn point within the loaded chunks
             Vector3Int spawnPoint = ChunkService.FindSpawnPoint();
@@ -67,13 +67,6 @@
 
 
 
-    private async Task LoadInitialChunks()
-    {
-        // Load initial chunks asynchronously
-        await Task.WhenAll(Enumerable.Range(-2, 5).SelectMany(x =>
-            Enumerable.Range(-2, 5).Select(z =>
-                ChunkService.GetOrCreateChunkAsync(x, z))));
-    }
 
     private async Task UpdateVisibleChunks()
     {
@@ -85,7 +78,7 @@
         if (_previousChunkCoords != currentChunkCoords)
         {
             // Load chunks around the current camera position
-            await ChunkService.LoadChunksAroundAsync(currentChunkCoords.Item1, currentChunkCoords.Item2, 1);
+            await ChunkService.LoadChunksAroundAsync(currentChunkCoords.Item1, currentChunkCoords.Item2, 4);
 
             var chunksData = await Task.WhenAll(ChunkService.GetChunksForCamera(_cameraInfo).Select(async chunk =>
             {
@@ -102,6 +95,12 @@
 
             var newVisibleChunkIds = new HashSet<string>(chunksData.Select(c => c.ChunkId));
             var chunksToRemove = _visibleChunkIds.Except(newVisibleChunkIds).ToList();
+
+            if(chunksToRemove.Count > 0)
+            {
+                int adfadf = 0;
+            }
+
             var newChunks = chunksData.Where(c => !_visibleChunkIds.Contains(c.ChunkId)).ToList();
 
             var updatePayload = new

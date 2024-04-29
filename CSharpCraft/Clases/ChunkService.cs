@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
 using DotnetNoise;
+using static System.Reflection.Metadata.BlobBuilder;
 
 
 namespace CSharpCraft.Clases
@@ -11,7 +12,7 @@ namespace CSharpCraft.Clases
     {
         private Dictionary<(int, int), Chunk> loadedChunks;
         public static int MaxChunkSize { get; } = 16;  // Standard size for simplicity
-        public static int MaxChunkHeight { get; } = 32;  // Height for each chunk
+        public static int MaxChunkHeight { get; } = 64;  // Height for each chunk
 
         // Create a noise generator
         public static FastNoise Noise { get; set; }
@@ -27,9 +28,9 @@ namespace CSharpCraft.Clases
 
         public static void InitializeNoise()
         {
-            Seed = 11;
+            Seed = 12;
             Noise = new FastNoise(Seed);
-            Noise.Frequency = 0.01f; // Adjust frequency to change the scale of terrain features
+            Noise.Frequency = 0.009f; // Adjust frequency to change the scale of terrain features
             Noise.UsedNoiseType = FastNoise.NoiseType.PerlinFractal;
             Noise.Octaves = 5; // More octaves for more detail
             Noise.Lacunarity = 2.0f;
@@ -42,18 +43,6 @@ namespace CSharpCraft.Clases
             return (int)Math.Floor(position / size);
         }
 
-        public bool HasCameraMovedToNewChunk(Vector3 previousPosition, Vector3 newPosition, out (int, int) newChunk)
-        {
-            int oldChunkX = GetChunkCoordinate(previousPosition.X, MaxChunkSize);
-            int oldChunkZ = GetChunkCoordinate(previousPosition.Z, MaxChunkSize);
-            int newChunkX = GetChunkCoordinate(newPosition.X, MaxChunkSize);
-            int newChunkZ = GetChunkCoordinate(newPosition.Z, MaxChunkSize);
-
-            newChunk = (newChunkX, newChunkZ);
-
-            // Return true if the chunk coordinates have changed
-            return (oldChunkX != newChunkX || oldChunkZ != newChunkZ);
-        }
         public IEnumerable<Chunk> GetChunksForCamera(CameraInfo camera)
         {
             List<Chunk> visibleChunks = new List<Chunk>();
@@ -63,9 +52,9 @@ namespace CSharpCraft.Clases
             Console.WriteLine($"Camera Position: {camera.Position.X}, {camera.Position.Z}");
             Console.WriteLine($"Chunk Coordinates: {cameraChunkX}, {cameraChunkZ}");
 
-            for (int x = cameraChunkX - 1; x <= cameraChunkX + 1; x++)
+            for (int x = cameraChunkX - 2; x <= cameraChunkX + 2; x++)
             {
-                for (int z = cameraChunkZ - 1; z <= cameraChunkZ + 1; z++)
+                for (int z = cameraChunkZ - 2; z <= cameraChunkZ + 2; z++)
                 {
                     if (loadedChunks.TryGetValue((x, z), out Chunk chunk))
                     {
@@ -83,91 +72,46 @@ namespace CSharpCraft.Clases
 
 
 
-        private bool IsChunkVisible(Chunk chunk, CameraInfo camera)
-        {
-            int chunkWorldX = chunk.ChunkX * MaxChunkSize;
-            int chunkWorldZ = chunk.ChunkZ * MaxChunkSize;
-            double distance = Math.Sqrt(Math.Pow(camera.Position.X - chunkWorldX, 2) + Math.Pow(camera.Position.Z - chunkWorldZ, 2));
-
-            return distance < camera.FarClip; // Using FarClip as the visibility threshold
-        }
-
-
-        public Block GetBlock(int globalX, int globalY, int globalZ)
-        {
-            Chunk chunk = GetChunkByGlobalCoords(globalX, globalZ);
-            return chunk?.GetBlock(globalX % MaxChunkSize, globalY, globalZ % MaxChunkSize);
-        }
-
-        public List<Block> GetNeighboringBlocks(int globalX, int globalY, int globalZ)
-        {
-            List<Block> neighbors = new List<Block>();
-            foreach (var offset in Block.NeighborOffsets)
-            {
-                Block neighbor = GetBlock(globalX + offset[0], globalY + offset[1], globalZ + offset[2]);
-                if (neighbor != null)
-                    neighbors.Add(neighbor);
-            }
-            return neighbors;
-        }
-
 
         public Vector3Int FindSpawnPoint()
         {
+            // Assuming each chunk is loaded and accessible via loadedChunks
             foreach (var chunk in loadedChunks.Values)
             {
-                foreach (var (block, index) in chunk.GetAllBlocksWithIndex())
+                for (int x = 0; x < MaxChunkSize; x++)
                 {
-                    if (block != null && IsSuitableSpawnPoint(chunk, block, index))
+                    for (int z = 0; z < MaxChunkSize; z++)
                     {
-                        int x = index % MaxChunkSize;
-                        int y = (index / (MaxChunkSize * MaxChunkSize)) % MaxChunkHeight;
-                        int z = (index / MaxChunkSize) % MaxChunkSize;
-                        return new Vector3Int(x, y + 1, z); // +1 to be on top of the block
+                        for (int y = 0; y < MaxChunkHeight; y++)
+                        {
+                            Block block = chunk.GetBlock(x, y, z);
+                            if (block != null)
+                                if (block.Type == BlockType.Grass)
+                                {
+                                    while (block != null)
+                                    {
+                                        block = chunk.GetBlock(x, ++y, z);
+
+                                    }
+                                    return new Vector3Int(x, y + 1, z);
+                                }
+                                }
                     }
                 }
             }
+
             // Default spawn point if none found
             return new Vector3Int(0, 0, 0);
         }
 
 
-
-        private bool IsSuitableSpawnPoint(Chunk chunk, Block block, int index)
+        private bool IsSuitableSpawnPoint()
         {
-            int x = index % MaxChunkSize;
-            int y = (index / (MaxChunkSize * MaxChunkSize)) % MaxChunkHeight;
-            int z = (index / MaxChunkSize) % MaxChunkSize;
-
-            // Check for blocks directly above the current block
-            for (int i = 1; i <= 3; i++)
-            {
-                if (BlockExistsAt(chunk, x, y + i, z))
-                    return false; // There is a block within 3 units above, not suitable
-            }
-            return true; // Suitable if there are no blocks directly above for 3 blocks
+            return true;
         }
 
 
-        private bool BlockExistsAt(Chunk chunk, int x, int y, int z)
-        {
-            if (y >= MaxChunkHeight) return false; // Exceeds chunk height
-            Block block = chunk.GetBlock(x, y, z);
-            return block != null;
-        }
 
-        private Chunk GetChunkByGlobalCoords(int globalX, int globalZ)
-        {
-            int chunkX = globalX / MaxChunkSize;
-            int chunkZ = globalZ / MaxChunkSize;
-            return loadedChunks.TryGetValue((chunkX, chunkZ), out Chunk chunk) ? chunk : LoadChunk(chunkX, chunkZ);
-        }
-
-        private Chunk LoadChunk(int chunkX, int chunkZ)
-        {
-            // Load or generate chunk
-            return new Chunk(chunkX, chunkZ, MaxChunkSize, MaxChunkHeight);
-        }
 
         public async Task<Chunk> GetOrCreateChunkAsync(int chunkX, int chunkZ)
         {
@@ -203,19 +147,20 @@ namespace CSharpCraft.Clases
                     float heightNoise = Noise.GetNoise(globalX / 0.5f, globalZ / 0.5f);
                     int height = Math.Clamp((int)(Math.Pow((heightNoise + 1) / 2, 2) * MaxChunkHeight), 0, MaxChunkHeight - 1);
 
-                    //Set blocks in the chunk
+
+                    // Set blocks in the chunk
                     for (int y = 0; y < height; y++)
                     {
-                        blocks[x, y, z] = (y < height - 1) ? new Block(BlockType.Dirt, globalX, y, globalZ) : new Block(BlockType.Grass, globalX, y, globalZ);
+                        // If y is 10 or higher, set as Stone, otherwise set as Dirt or Grass depending on height
+                        if (y >= 25)
+                        {
+                            blocks[x, y, z] = new Block(BlockType.Stone, globalX, y, globalZ);
+                        }
+                        else
+                        {
+                            blocks[x, y, z] = (y < height - 1) ? new Block(BlockType.Dirt, globalX, y, globalZ) : new Block(BlockType.Grass, globalX, y, globalZ);
+                        }
                     }
-
-                    //this code doesn;t work...
-                    //int yMin = height - 2;
-                    //if (yMin < 0) yMin = 0;
-                    //for (int y = yMin; y < height; y++)
-                    //{
-                    //    blocks[x, y, z] = (y < height - 1) ? new Block(4, globalX, y, globalZ) : new Block(1, globalX, y, globalZ);
-                    //}
                 }
             }
 
@@ -226,35 +171,51 @@ namespace CSharpCraft.Clases
             double rockProbability = 0.05;  // Chance of a rock outcropping in a given chunk
             if (random.NextDouble() < rockProbability)
             {
-                int centerX = random.Next(3, MaxChunkSize - 3);
-                int centerZ = random.Next(3, MaxChunkSize - 3);
-                int baseHeight = 0;  // Finding the height at (centerX, centerZ)
-                while (baseHeight < MaxChunkHeight && blocks[centerX, baseHeight, centerZ] != null)
+                // Calculate the center position in global coordinates
+                int centerX = random.Next(3, MaxChunkSize - 3) + chunkX * MaxChunkSize;
+                int centerZ = random.Next(3, MaxChunkSize - 3) + chunkZ * MaxChunkSize;
+                int baseHeight = 0;  // Finding the height at the global center position
+
+                // Convert global coordinates back to local coordinates for accessing the block array
+                int localX = centerX % MaxChunkSize;
+                int localZ = centerZ % MaxChunkSize;
+
+                // Ensure local coordinates are within bounds (should always be true by construction)
+                localX = Math.Clamp(localX, 0, MaxChunkSize - 1);
+                localZ = Math.Clamp(localZ, 0, MaxChunkSize - 1);
+
+                while (baseHeight < MaxChunkHeight && blocks[localX, baseHeight, localZ] != null)
                 {
                     baseHeight++;
                 }
+
                 int radius = random.Next(2, 5);  // Random radius of rock outcropping
                 int heightIncrease = random.Next(2, 4);  // Height variation of the rock
 
-                // Generate a roughly spherical rock outcropping
+                // Generate a roughly spherical rock outcropping using global coordinates
                 for (int x = centerX - radius; x <= centerX + radius; x++)
                 {
                     for (int z = centerZ - radius; z <= centerZ + radius; z++)
                     {
                         for (int y = baseHeight; y <= baseHeight + heightIncrease; y++)
                         {
-                            if (x >= 0 && x < MaxChunkSize && z >= 0 && z < MaxChunkSize && y < MaxChunkHeight)
+                            int localBlockX = x % MaxChunkSize;
+                            int localBlockZ = z % MaxChunkSize;
+
+                            // Check bounds within the chunk
+                            if (localBlockX >= 0 && localBlockX < MaxChunkSize && localBlockZ >= 0 && localBlockZ < MaxChunkSize && y < MaxChunkHeight)
                             {
                                 double distance = Math.Sqrt(Math.Pow(x - centerX, 2) + Math.Pow(z - centerZ, 2) + Math.Pow(y - baseHeight, 2));
                                 if (distance <= radius)
                                 {
-                                    blocks[x, y, z] = new Block(BlockType.Stone, x, y, z); // Set block type to 5 (rock)
+                                    blocks[localBlockX, y, localBlockZ] = new Block(BlockType.Stone, x, y, z); // Set block type to Stone
                                 }
                             }
                         }
                     }
                 }
             }
+
 
             double treeProbability = 0.01;
 
@@ -263,23 +224,22 @@ namespace CSharpCraft.Clases
             {
                 for (int z = 1; z < MaxChunkSize - 1; z++)
                 {
+                    // Calculate global coordinates
+                    int globalX = chunkX * MaxChunkSize + x;
+                    int globalZ = chunkZ * MaxChunkSize + z;
+
                     if (random.NextDouble() < treeProbability) // Check if a tree should be generated here
                     {
-                        // Determine the height at the current column directly
-                        int baseHeight = 0;
-                        while (baseHeight < MaxChunkHeight && blocks[x, baseHeight, z] != null)
+                        int baseHeight = FindTopBlockAt(blocks, x, z); // Use the function to find the top block locally
+
+                        if (baseHeight >= 0 && blocks[x, baseHeight, z].Type == BlockType.Grass) // Ensure the top block is grass
                         {
-                            baseHeight++;
-                        }
-                        baseHeight--; // Adjust to get the top block's position
-                        if (blocks[x, baseHeight, z].Type == BlockType.Grass) //block must be grass
-                        {
-                            if (baseHeight + 5 < MaxChunkSize) // Ensure there's enough space for the tree
+                            if (baseHeight + 5 < MaxChunkHeight) // Ensure there's enough space for the tree
                             {
-                                // Create trunk (block type 2)
-                                for (int y = baseHeight + 1; y <= baseHeight + 5; y++) // Start from baseHeight + 1
+                                // Create trunk
+                                for (int y = baseHeight + 1; y <= baseHeight + 5; y++)
                                 {
-                                    blocks[x, y, z] = new Block(BlockType.Trunk, x, y, z); // trunk blocks
+                                    blocks[x, y, z] = new Block(BlockType.Trunk, globalX, y, globalZ); // Trunk blocks with global coordinates
                                 }
 
                                 // Create a simple leaf canopy above the trunk
@@ -289,8 +249,12 @@ namespace CSharpCraft.Clases
                                     {
                                         for (int dy = 4; dy <= 6; dy++)
                                         {
-                                            if (x + dx < MaxChunkSize && z + dz < MaxChunkSize)
-                                                blocks[x + dx, baseHeight + dy, z + dz] = new Block(BlockType.Leaves, x + dx, baseHeight + dy, z + dz); // leaf blocks
+                                            int leafX = x + dx;
+                                            int leafZ = z + dz;
+                                            if (leafX >= 0 && leafX < MaxChunkSize && leafZ >= 0 && leafZ < MaxChunkSize && (baseHeight + dy) < MaxChunkHeight)
+                                            {
+                                                blocks[leafX, baseHeight + dy, leafZ] = new Block(BlockType.Leaves, globalX + dx, baseHeight + dy, globalZ + dz); // Leaf blocks with global coordinates
+                                            }
                                         }
                                     }
                                 }
@@ -301,6 +265,8 @@ namespace CSharpCraft.Clases
             }
 
 
+
+
             // Initialize the chunk with the generated blocks
             Chunk chunk = new Chunk(chunkX, chunkZ, MaxChunkSize, MaxChunkHeight);
             chunk.SetBlocks(blocks);
@@ -308,15 +274,21 @@ namespace CSharpCraft.Clases
             return chunk;
         }
 
-
-
-
-        private async Task<Chunk> LoadChunkAsync(int chunkX, int chunkZ)
+        public int FindTopBlockAt(Block[,,] blocks, int x, int z)
         {
-            // Load or generate chunk asynchronously
-            await Task.Delay(100); // Simulate loading delay
-            return new Chunk(chunkX, chunkZ, MaxChunkSize, MaxChunkHeight);
+            int topBlockY = -1; // Start with -1 to indicate no block found yet
+            for (int y = 0; y < MaxChunkHeight; y++)
+            {
+                if (blocks[x, y, z] != null)
+                {
+                    topBlockY = y; // Update topBlockY to the latest non-null block
+                }
+            }
+            return topBlockY;
         }
+
+
+
 
         public async Task LoadChunksAroundAsync(int centerX, int centerZ, int radius)
         {

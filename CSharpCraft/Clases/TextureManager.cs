@@ -24,7 +24,7 @@
         }},
           {5, new Dictionary<string, string> {
             {"top", "graphics/Stone.jpg"},
-            {"side", "graphics/Stone.jpg"},
+            {"side", "graphics/StoneSide.jpg"},
             {"bottom", "graphics/Stone.jpg"}
         }},
         // Add more types as necessary
