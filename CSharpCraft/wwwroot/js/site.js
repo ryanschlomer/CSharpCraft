@@ -194,48 +194,6 @@ function clearChunks(chunksToRemove) {
 
 
 
-//function clearChunks(chunksToRemove) {
-//    if (!scene) {
-//        console.error("Scene is undefined. Cannot traverse.");
-//        return;
-//    }
-
-//    const objectsToRemove = [];
-
-//    scene.traverse((object) => {
-//        if (object.userData.isChunk && chunksToRemove.includes(object.name)) {
-//            objectsToRemove.push(object);
-//        }
-//    });
-
-//    objectsToRemove.forEach(object => {
-//        // Dispose of the material and textures if they exist
-//        if (object.material) {
-//            if (Array.isArray(object.material)) {
-//                // For objects with multiple materials
-//                object.material.forEach(mat => {
-//                    if (mat.map) mat.map.dispose();  // Dispose of texture
-//                    mat.dispose();  // Dispose of material
-//                });
-//            } else {
-//                // For objects with a single material
-//                if (object.material.map) object.material.map.dispose();
-//                object.material.dispose();
-//            }
-//        }
-
-//        // Dispose of the geometry
-//        if (object.geometry) {
-//            object.geometry.dispose();
-//        }
-
-//        // Finally, remove the object from the scene
-//        scene.remove(object);
-//    });
-
-//    console.log("Removed objects:", objectsToRemove.length);
-//}
-
 
 function populateInstanceBufferAttributes(blocksData, positionAttribute, scaleAttribute) {
     const instanceCount = blocksData.length;
@@ -274,22 +232,6 @@ function groupBlocksByType(blocks) {
 
 const chunkQueue = []; // Queue to store chunks for sequential rendering
 
-
-//function renderChunks(canvasId, jsonUpdatePayload) {
-//    const updatePayload = JSON.parse(jsonUpdatePayload);
-//    clearChunks(updatePayload.ChunksToRemove); // Remove old chunks based on IDs
-
-//    // Enqueue new chunks for rendering
-//    updatePayload.NewChunks.forEach(chunk => {
-//        chunkQueue.push(chunk);
-//    });
-
-//    // If no rendering is ongoing, start rendering the next chunk
-//    if (chunkQueue.length === updatePayload.NewChunks.length) {
-//        renderNextChunk();
-//        applyMaterialsToMesh();  // Call this after chunks are rendered
-//    }
-//}
 
 function renderChunks(canvasId, jsonUpdatePayload) {
     const updatePayload = JSON.parse(jsonUpdatePayload);
