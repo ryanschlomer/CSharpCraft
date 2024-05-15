@@ -6,13 +6,13 @@ namespace CSharpCraft.Controllers
     [Route("api/textures")]
     public class TexturesController : ControllerBase
     {
-        [HttpGet("{type}")]
-        public IActionResult GetTexturePaths(int type)
+        [HttpGet()]
+        public IActionResult GetTextureAtlasPath()
         {
-            var textures = TextureManager.GetTexturePathsByType(type);
-            if (textures != null)
+            var textureAtlasPath = TextureManager.GetTextureAtlasPath(); // Adjust this method to return the path to the texture atlas
+            if (textureAtlasPath != null)
             {
-                return Ok(textures);
+                return Ok(textureAtlasPath);
             }
             return NotFound();
         }

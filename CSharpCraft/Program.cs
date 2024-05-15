@@ -7,13 +7,21 @@ using Microsoft.AspNetCore.SignalR;
 using System.Linq;
 using CSharpCraft.Clases;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddSingleton<PlayerManager>();
+builder.Services.AddSingleton<Physics>();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<ChunkService>();
+//builder.Services.AddScoped<GameStateService>();
+
+
+builder.Services.AddScoped<InteropHelper>();
+
 
 builder.Services.AddControllers();
 

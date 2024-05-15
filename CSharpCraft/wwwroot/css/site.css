@@ -67,6 +67,7 @@ a, .btn-link {
 #controls button {
     background-color: #fff;
     border: none;
+    z-index: 1000; /* Ensure a high z-index */
     font-size: 32px; /* Increased font size */
     padding: 20px 40px; /* Larger padding for a bigger touch area */
     border-radius: 5px;

@@ -38,7 +38,7 @@ namespace CSharpCraft.Clases
             FarClip = 1000f;
         }
 
-        // Optionally, a constructor to initialize all properties
+      
         public CameraInfo(Vector3 position, Vector3 direction, Vector3 up, float fov, float aspectRatio, float nearClip, float farClip)
         {
             Position = position;

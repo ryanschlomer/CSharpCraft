@@ -1,6 +1,12 @@
 ﻿@page "/grassworld"
+@implements IDisposable
 @inject IJSRuntime JSRuntime
 @inject ChunkService ChunkService
+
+@inject IHubContext<GameHub> GameHubContext
+@inject PlayerManager PlayerManager
+@inject InteropHelper InteropHelper
+
 
 <h3>3D World of Grass</h3>
 <button @onclick="GoFullScreen">Go Full Screen</button>
@@ -9,7 +15,10 @@
 
     <!-- Display coordinates -->
     <div style="position: fixed; top: 10px; left: 10px; z-index: 1000;">
-        <span id="cameraPosition" style="font-size: 20px; font-weight: bold; color: white;">Camera Position: (X: -, Y: -, Z: -)</span>
+        <span id="cameraPosition" style="font-size: 20px; font-weight: bold; color: white;">Camera Position: (X: , Y: , Z: )</span>
+        <span id="log" style="font-size: 20px; font-weight: bold; color: white;">Log: </span>
+        <span id="RazorLog" style="font-size: 20px; font-weight: bold; color: white;"> @logMessage</span>
+
     </div>
 
     <div id="controls" style="position: fixed; bottom: 10%; left: 10px; z-index: 1000; display: grid; grid-template-columns: repeat(3, auto); grid-gap: 10px;">
@@ -28,108 +37,66 @@
 
 
 @code {
-    private static CameraInfo _cameraInfo = new CameraInfo();
-    private static Vector3 _previousCameraPosition = new Vector3(); // Initialize with default or initial camera position
-    private (int, int) _previousChunkCoords = (int.MaxValue, int.MaxValue);
 
-    private HashSet<string> _visibleChunkIds = new HashSet<string>();
+     /* FYI about static variables
+     * In the code you provided, logMessage is declared as a static field. 
+     * This means it is shared across all instances of the component and all users in a 
+     * Blazor Server application. Consequently, any update to logMessage will affect all users 
+     * connected to your Blazor application, and they will all see the same log message. 
+     * This behavior is typically not desirable in multi-user scenarios where each user should 
+     * have their own state and messages.
+    */
+    //private static CameraInfo _cameraInfo = new CameraInfo();
+    //private static Vector3 _previousCameraPosition = new Vector3(); // Initialize with default or initial camera position
+    //private (int, int) _previousChunkCoords = (int.MaxValue, int.MaxValue);
+
+    //private HashSet<string> _visibleChunkIds = new HashSet<string>();
+
+    static string logMessage = ""; //being static is fine for now since it's only me
+
+    Player currentPlayer = new Player();
 
 
-    private Timer _timer;
+    protected override async void OnInitialized()
+    {
+        logMessage = "Waiting for connection...";
+
+        currentPlayer = await InteropHelper.InitializePlayerFromJS();
+        Console.WriteLine($"CurrentPlayer: {currentPlayer.ConnectionId}");
+        logMessage = "";
+        //Need to handle this differently I am guessing. If it's loading chunks
+        //This needs to make sure only one player kicks it off.
+        await ChunkService.LoadChunksAroundAsync(0, 0, VoxelData.ChunkViewRadius+2);
+
+        // Find a suitable spawn point within the loaded chunks
+        Vector3 spawnPoint = ChunkService.FindSpawnPoint();
+        currentPlayer.Position = spawnPoint;
+        Console.WriteLine($"SpawnPoint: X={spawnPoint.X}, Y={spawnPoint.Y}, Z={spawnPoint.Z}");
+
+        var dotNetObjectReference = DotNetObjectReference.Create(this);
+        await JSRuntime.InvokeVoidAsync("GetCameraComponent.registerComponent", dotNetObjectReference);
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            await JSRuntime.InvokeVoidAsync("requestFullScreen", "fullscreenContainer");
             await JSRuntime.InvokeVoidAsync("initialize3DScene", "canvas3D");
+            //Send javascript all the static data that it needs
+            await JSRuntime.InvokeVoidAsync("setVoxelData", VoxelData.ChunkWidth, VoxelData.ChunkHeight);
             await JSRuntime.InvokeVoidAsync("adjustCanvasSize", "canvas3D");
 
-            // Set the camera position at (0, 0, 0)
-            await JSRuntime.InvokeVoidAsync("setCameraPosition", 0, 0, 0);
+
+            // Set the camera for the player
+            await JSRuntime.InvokeVoidAsync("setCameraPosition", currentPlayer.CameraPosition.X, currentPlayer.CameraPosition.Y, currentPlayer.CameraPosition.Z);
 
 
-
-            // Load or create initial chunks around the camera position
-            await ChunkService.LoadChunksAroundAsync(0, 0, 4); // Adjust the radius as needed
-
-            // Find a suitable spawn point within the loaded chunks
-            Vector3Int spawnPoint = ChunkService.FindSpawnPoint();
-            await JSRuntime.InvokeVoidAsync("setCameraPosition", spawnPoint.X, spawnPoint.Y, spawnPoint.Z);
-
+            Thread.Sleep(1000);
+            await currentPlayer.ChunkManager.LoadAndProcessChunksAroundAsync();
             await JSRuntime.InvokeVoidAsync("addTouchListeners", "controls");
-
-            // Start the timer after everything is initialized
-            _timer = new Timer(async _ =>
-            {
-                await InvokeAsync(UpdateVisibleChunks);
-            }, null, 1000, 1000); // Delay start by 1000ms and repeat every 1000ms
         }
     }
-
-
-
-
-    private async Task UpdateVisibleChunks()
-    {
-        (int, int) currentChunkCoords = (
-            ChunkService.GetChunkCoordinate(_cameraInfo.Position.X, ChunkService.MaxChunkSize),
-            ChunkService.GetChunkCoordinate(_cameraInfo.Position.Z, ChunkService.MaxChunkSize)
-        );
-
-        if (_previousChunkCoords != currentChunkCoords)
-        {
-            // Load chunks around the current camera position
-            await ChunkService.LoadChunksAroundAsync(currentChunkCoords.Item1, currentChunkCoords.Item2, 4);
-
-            var chunksData = await Task.WhenAll(ChunkService.GetChunksForCamera(_cameraInfo).Select(async chunk =>
-            {
-                return new
-                {
-                    ChunkX = chunk.ChunkX,
-                    ChunkZ = chunk.ChunkZ,
-                    ChunkId = chunk.ChunkID,
-                    Blocks = chunk.GetBlocksData(),
-                    Size = ChunkService.MaxChunkSize,
-                    Height = ChunkService.MaxChunkHeight
-                };
-            }));
-
-            var newVisibleChunkIds = new HashSet<string>(chunksData.Select(c => c.ChunkId));
-            var chunksToRemove = _visibleChunkIds.Except(newVisibleChunkIds).ToList();
-
-            if(chunksToRemove.Count > 0)
-            {
-                int adfadf = 0;
-            }
-
-            var newChunks = chunksData.Where(c => !_visibleChunkIds.Contains(c.ChunkId)).ToList();
-
-            var updatePayload = new
-            {
-                NewChunks = newChunks,
-                ChunksToRemove = chunksToRemove
-            };
-
-            var jsonUpdatePayload = JsonSerializer.Serialize(updatePayload);
-            await JSRuntime.InvokeVoidAsync("renderChunks", "canvas3D", jsonUpdatePayload);
-
-            _visibleChunkIds = newVisibleChunkIds; // Update the currently visible chunks
-            _previousChunkCoords = currentChunkCoords; // Update the stored chunk coordinates
-        }
-    }
-
-
-
-    [JSInvokable]
-    public static async Task UpdateCameraInfo(float x, float y, float z)
-    {
-        Vector3 newPosition = new Vector3(x, y, z);
-
-        // Update the global camera info and the previous position
-        _cameraInfo.Position = newPosition;
-        _previousCameraPosition = newPosition;
-    }
-
- 
 
     private async Task GoFullScreen()
     {
@@ -140,6 +107,6 @@
 
     public void Dispose()
     {
-        _timer?.Dispose();
+      
     }
 }

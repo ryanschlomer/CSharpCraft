@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Common" Version="8.0.4" />
     <PackageReference Include="VL.FastNoise" Version="1.0.2" />
   </ItemGroup>
 
