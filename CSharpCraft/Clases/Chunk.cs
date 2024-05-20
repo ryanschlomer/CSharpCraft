@@ -8,10 +8,13 @@ namespace CSharpCraft.Clases
     public class Chunk
     {
         //Need getters and setters for these?
-        int VertexIndex = 0;
-        public List<Vector3> Vertices { get; private set; } = new List<Vector3>();
-        public List<int> Triangles { get; private set; } = new List<int>();
-        public List<Vector2> Uvs { get; private set; } = new List<Vector2>();
+        //int VertexIndex = 0;
+        //public List<Vector3> Vertices { get; private set; } = new List<Vector3>();
+        //public List<int> Triangles { get; private set; } = new List<int>();
+        //public List<Vector2> Uvs { get; private set; } = new List<Vector2>();
+
+        public List<BlockInfo> BlocksInfoList { get; set; } = new List<BlockInfo>();
+
 
         byte[,,] Blocks = new byte[VoxelData.ChunkWidth, VoxelData.ChunkHeight, VoxelData.ChunkWidth];
 
@@ -83,11 +86,7 @@ namespace CSharpCraft.Clases
 
         public void CreateMeshData()
         {
-            //This might not be exactly how this needs to work. youtube will let us know I think
-            VertexIndex = 0;
-            Vertices.Clear();
-            Triangles.Clear();
-            Uvs.Clear();
+            BlocksInfoList.Clear();
 
             for (int y = 0; y < VoxelData.ChunkHeight; y++)
             {
@@ -95,14 +94,58 @@ namespace CSharpCraft.Clases
                 {
                     for (int z = 0; z < VoxelData.ChunkWidth; z++)
                     {
-
-                        AddVoxelDataToChunk(new Vector3(x, y, z));
+                        AddBlockInfoDataToChunk(new Vector3(x, y, z));
 
                     }
                 }
             }
+        }
+        private void AddBlockInfoDataToChunk(Vector3 pos)
+        {
+            if (VoxelData.BlockTypes[Blocks[(int)pos.X, (int)pos.Y, (int)pos.Z]] == VoxelData.BlockTypes[0])
+                return; //don't add air block
+            for (int p = 0; p < 6; p++)
+            {
+
+                if (!IsVoxelSolid(pos + VoxelData.FaceChecks[p]))
+                {
+                    byte blockID = Blocks[(int)pos.X, (int)pos.Y, (int)pos.Z];
+
+                    BlockInfo block = new BlockInfo
+                    {
+                        BlockId = blockID,
+                        Position = new Position(pos.X, pos.Y, pos.Z),
+                    };
+                    BlocksInfoList.Add(block);
+                }
+                else
+                {
+                    //the block is solid; we might have to eventually do something in the future,
+                    ////like when we are adding blocks.
+                }
+            }
 
         }
+
+        //VertexIndex = 0;
+        //Vertices.Clear();
+        //Triangles.Clear();
+        //Uvs.Clear();
+
+        //for (int y = 0; y < VoxelData.ChunkHeight; y++)
+        //{
+        //    for (int x = 0; x < VoxelData.ChunkWidth; x++)
+        //    {
+        //        for (int z = 0; z < VoxelData.ChunkWidth; z++)
+        //        {
+
+        //            AddVoxelDataToChunk(new Vector3(x, y, z));
+
+        //        }
+        //    }
+        //}
+
+   // }
 
         public bool IsVoxelSolid(Vector3 localPos)
         {
@@ -127,61 +170,60 @@ namespace CSharpCraft.Clases
         }
 
 
-        async void AddVoxelDataToChunk(Vector3 pos)
-        {
-            if (VoxelData.BlockTypes[Blocks[(int)pos.X, (int)pos.Y, (int)pos.Z]] == VoxelData.BlockTypes[0])
-                return; //don't add air block
-            for (int p = 0; p < 6; p++)
-            {
+        //async void AddVoxelDataToChunk(Vector3 pos)
+        //{
+        //    if (VoxelData.BlockTypes[Blocks[(int)pos.X, (int)pos.Y, (int)pos.Z]] == VoxelData.BlockTypes[0])
+        //        return; //don't add air block
+        //    for (int p = 0; p < 6; p++)
+        //    {
 
-                if(!IsVoxelSolid(pos+ VoxelData.FaceChecks[p]))
-                {
-                    byte blockID = Blocks[(int)pos.X, (int)pos.Y, (int)pos.Z];
+        //        if(!IsVoxelSolid(pos+ VoxelData.FaceChecks[p]))
+        //        {
+        //            byte blockID = Blocks[(int)pos.X, (int)pos.Y, (int)pos.Z];
 
-                    Vertices.Add(pos + VoxelData.VoxelVerts[VoxelData.VoxelTris[p, 0]]);
-                    Vertices.Add(pos + VoxelData.VoxelVerts[VoxelData.VoxelTris[p, 1]]);
-                    Vertices.Add(pos + VoxelData.VoxelVerts[VoxelData.VoxelTris[p, 2]]);
-                    Vertices.Add(pos + VoxelData.VoxelVerts[VoxelData.VoxelTris[p, 3]]);
+        //            Vertices.Add(pos + VoxelData.VoxelVerts[VoxelData.VoxelTris[p, 0]]);
+        //            Vertices.Add(pos + VoxelData.VoxelVerts[VoxelData.VoxelTris[p, 1]]);
+        //            Vertices.Add(pos + VoxelData.VoxelVerts[VoxelData.VoxelTris[p, 2]]);
+        //            Vertices.Add(pos + VoxelData.VoxelVerts[VoxelData.VoxelTris[p, 3]]);
 
-                    AddTexture(VoxelData.BlockTypes[blockID].GetTextureID(p));
+        //            AddTexture(VoxelData.BlockTypes[blockID].GetTextureID(p));
 
-                    Triangles.Add(VertexIndex);
-                    Triangles.Add(VertexIndex + 1);
-                    Triangles.Add(VertexIndex + 2);
-                    Triangles.Add(VertexIndex + 2);
-                    Triangles.Add(VertexIndex + 1);
-                    Triangles.Add(VertexIndex + 3);
+        //            Triangles.Add(VertexIndex);
+        //            Triangles.Add(VertexIndex + 1);
+        //            Triangles.Add(VertexIndex + 2);
+        //            Triangles.Add(VertexIndex + 2);
+        //            Triangles.Add(VertexIndex + 1);
+        //            Triangles.Add(VertexIndex + 3);
 
-                    VertexIndex += 4;
+        //            VertexIndex += 4;
 
-                }
-                else
-                {
-                    //the block is solid; we might have to eventually do something in the future,
-                    ////like when we are adding blocks.
-                }
-            }
+        //        }
+        //        else
+        //        {
+        //            //the block is solid; we might have to eventually do something in the future,
+        //            ////like when we are adding blocks.
+        //        }
+        //    }
 
-        }
+        //}
 
-        void AddTexture(int textureID)
-        {
-            // Calculate texture coordinates based on texture ID
-            float y = textureID / VoxelData.TextureAtlasSizeInBlocks* VoxelData.NormalizedBlockTextureSize;
-            float x = textureID % VoxelData.TextureAtlasSizeInBlocks* VoxelData.NormalizedBlockTextureSize;
+        //void AddTexture(int textureID)
+        //{
+        //    // Calculate texture coordinates based on texture ID
+        //    float y = textureID / VoxelData.TextureAtlasSizeInBlocks* VoxelData.NormalizedBlockTextureSize;
+        //    float x = textureID % VoxelData.TextureAtlasSizeInBlocks* VoxelData.NormalizedBlockTextureSize;
 
-            // Normalize texture coordinates
+        //    // Normalize texture coordinates
 
-            // Adjust y coordinate to match UV coordinate system
-            y = 1f - y - VoxelData.NormalizedBlockTextureSize;
+        //    // Adjust y coordinate to match UV coordinate system
+        //    y = 1f - y - VoxelData.NormalizedBlockTextureSize;
 
-            // Add texture coordinates for each vertex
-            Uvs.Add(new Vector2(x, y));
-            Uvs.Add(new Vector2(x, y + VoxelData.NormalizedBlockTextureSize));
-            Uvs.Add(new Vector2(x + VoxelData.NormalizedBlockTextureSize, y));
-            Uvs.Add(new Vector2(x + VoxelData.NormalizedBlockTextureSize, y + VoxelData.NormalizedBlockTextureSize));
-        }
-
+        //    // Add texture coordinates for each vertex
+        //    Uvs.Add(new Vector2(x, y));
+        //    Uvs.Add(new Vector2(x, y + VoxelData.NormalizedBlockTextureSize));
+        //    Uvs.Add(new Vector2(x + VoxelData.NormalizedBlockTextureSize, y));
+        //    Uvs.Add(new Vector2(x + VoxelData.NormalizedBlockTextureSize, y + VoxelData.NormalizedBlockTextureSize));
+        //}
 
         public ChunkData GetChunkData()
         {
@@ -198,14 +240,16 @@ namespace CSharpCraft.Clases
                 }
             return new ChunkData
             {
-                Vertices = this.Vertices,
-                Triangles = this.Triangles,
-                Uvs = this.Uvs,
+                //Vertices = this.Vertices,
+                //Triangles = this.Triangles,
+                //Uvs = this.Uvs,
                 ChunkX = this.ChunkX,
                 ChunkZ = this.ChunkZ,
-                ChunkId = this.ChunkId
+                ChunkId = this.ChunkId,
+                Blocks = this.BlocksInfoList
             };
         }
+
 
         public Vector3 GetTopSolidBlock(Vector3 pos)
         {
@@ -222,5 +266,36 @@ namespace CSharpCraft.Clases
             return Vector3.Zero;
         }
 
+        internal bool AddBlock(int x, int y, int z, byte blockType)
+        {
+            //check current block. Make sure there isn't something there that shouldn't be,
+            //like a block that isn't air or water eventually.
+            //basically, did another block already get added
+            if (!ChunkFullyLoaded)
+                return false;
+            byte block = Blocks[x, y, z];
+            if (block == 0) //add block if there's an air block there now
+            {
+                Blocks[x, y, z] = blockType;
+                MeshDataChanged = true;
+                return true;
+            }
+            return false;
+        }
+
+        internal bool RemoveBlock(int x, int y, int z)
+        {
+            if (!ChunkFullyLoaded)
+                return false;
+            //set block to air
+            Blocks[x, y, z] = 0;
+            MeshDataChanged = true;
+            return true;
+        }
+
+        internal byte GetBlockType(int x, int y, int z)
+        {
+            return Blocks[x, y, z];
+        }
     }
 }

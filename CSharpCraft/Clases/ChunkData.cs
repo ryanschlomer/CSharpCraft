@@ -5,9 +5,11 @@ namespace CSharpCraft.Clases
 {
     public class ChunkData
     {
-        public List<Vector3> Vertices { get; set; }
-        public List<int> Triangles { get; set; }
-        public List<Vector2> Uvs { get; set; }
+        //not sending these anymore. Need to have the list of blocks for instanced meshes and selecting a block
+        //public List<Vector3> Vertices { get; set; }
+        //public List<int> Triangles { get; set; }
+        //public List<Vector2> Uvs { get; set; }
+        public List<BlockInfo> Blocks { get; set; }
 
         public int ChunkX { get; set; }
         public int ChunkZ { get; set; }
@@ -16,4 +18,6 @@ namespace CSharpCraft.Clases
         // Default constructor
         public ChunkData() { }
     }
+
+  
 }

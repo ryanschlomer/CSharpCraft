@@ -9,6 +9,7 @@ namespace CSharpCraft.Clases
         public string BlockName { get; set; }
         public bool IsSolid { get; set; }
 
+        public string TextureAtlas { get; set; }
         //[Header("Texture Values")]
         public int BackFaceTexture { get; set; }
         public int FrontFaceTexture { get; set; }
@@ -20,6 +21,19 @@ namespace CSharpCraft.Clases
         // Back, Front, Top, Bottom, Left, Right
         public Vector3 Scale { get; set; }
         public float Scarcity { get; set; }
+
+        //public Dictionary<string, UVPoint[]> GetUVs()
+        //{
+        //    return new Dictionary<string, UVPoint[]>
+        //{
+        //    { "BackFace", UVCalculator.GetUVCoordinates(BackFaceTexture) },
+        //    { "FrontFace", UVCalculator.GetUVCoordinates(FrontFaceTexture) },
+        //    { "TopFace", UVCalculator.GetUVCoordinates(TopFaceTexture) },
+        //    { "BottomFace", UVCalculator.GetUVCoordinates(BottomFaceTexture) },
+        //    { "LeftFace", UVCalculator.GetUVCoordinates(LeftFaceTexture) },
+        //    { "RightFace", UVCalculator.GetUVCoordinates(RightFaceTexture) }
+        //};
+        //}
 
         public int GetTextureID(int faceIndex)
         {
@@ -45,5 +59,41 @@ namespace CSharpCraft.Clases
 
             }
         }
+    }
+
+    public class BlockInfo
+    {
+        public byte BlockId { get; set; }
+        public Position Position { get; set; }
+        //public Dictionary<string, UVPoint[]> UVs { get; set; }
+    }
+
+    public class UVPoint
+    {
+        public float X { get; set; }
+        public float Y { get; set; }
+
+        public UVPoint(float x, float y)
+        {
+            X = x;
+            Y = y;
+        }
+    }
+
+    public class UVData
+    {
+        public byte BlockType { get; set; }
+        public string TextureAtlas { get; set; }
+        public string BlockName { get; set; }
+        public bool IsSolid { get; set; }
+        public Dictionary<string, UVPoint[]> Faces { get; set; }
+    }
+
+    public class BlockUpdate
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Z { get; set; }
+        public byte BlockType { get; set; }
     }
 }

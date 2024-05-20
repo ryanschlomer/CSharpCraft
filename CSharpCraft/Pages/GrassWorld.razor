@@ -82,9 +82,10 @@
         if (firstRender)
         {
             await JSRuntime.InvokeVoidAsync("requestFullScreen", "fullscreenContainer");
+            await JSRuntime.InvokeVoidAsync("setVoxelData", VoxelData.ChunkWidth, VoxelData.ChunkHeight);
             await JSRuntime.InvokeVoidAsync("initialize3DScene", "canvas3D");
             //Send javascript all the static data that it needs
-            await JSRuntime.InvokeVoidAsync("setVoxelData", VoxelData.ChunkWidth, VoxelData.ChunkHeight);
+            
             await JSRuntime.InvokeVoidAsync("adjustCanvasSize", "canvas3D");
 
 

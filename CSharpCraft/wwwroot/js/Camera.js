@@ -46,77 +46,6 @@ connection.on("UpdatePosition", (newPosition) => {
 
 
 
-window.GetCameraComponent = {
-    registerComponent: function (component) {
-        window.cameraComponent = component;
-        // Once the component is registered, call the updateCameraPosition function
-    }
-};
-
-//async function sendCameraMovementToServer(xDelta, yDelta, zDelta) {
-    
-//    const direction = new THREE.Vector3();
-//    camera.getWorldDirection(direction);
-//    direction.y = 0; // Ignore the vertical component for horizontal movement
-//    direction.normalize();
-//    console.log("Before MoveCamera Camera.position: ", camera.position)
-//    console.log("Before MoveCamera Camera.direction: ", direction)
-//    return await window.cameraComponent.invokeMethodAsync('MoveCamera', xDelta, yDelta, zDelta, direction.x, direction.y, direction.z);
-    
-//}
-
-
-
-//async function updateCameraPosition() {
-//    const moveSpeed = 0.1;
-//    const direction = new THREE.Vector3();
-//    const right = new THREE.Vector3();
-//    camera.getWorldDirection(direction);
-//    direction.y = 0; // Ignore the vertical component for horizontal movement
-//    direction.normalize();
-//    right.crossVectors(direction, camera.up).normalize();
-
-//    let xDelta = 0, yDelta = 0, zDelta = 0;
-
-//    // Adjust vertical position independently of the camera's direction
-//    if (keyStates['ShiftLeft'] || keyStates['ShiftRight']) {
-//        if (keyStates['ArrowUp']) yDelta += moveSpeed;  // Move down
-//        if (keyStates['ArrowDown']) yDelta -= moveSpeed;  // Move up
-//    } else {
-//        if (keyStates['ArrowUp']) zDelta += moveSpeed;  // Move backward
-//        if (keyStates['ArrowDown']) zDelta -= moveSpeed;  // Move forward
-//    }
-
-//    // Determine the desired movement based on keyboard input
-   
-  
-//    if (keyStates['ArrowLeft']) xDelta -= moveSpeed;
-//    if (keyStates['ArrowRight']) xDelta += moveSpeed;
- 
-   
-
-//    if (xDelta === 0 && yDelta === 0 && zDelta === 0)
-//        return;
-
-    
-//    // Send the desired movement to the server and handle the return value
-//    var newPosition = await sendCameraMovementToServer(xDelta, yDelta, zDelta);
-
-//    if (newPosition && typeof newPosition.x === "number" && typeof newPosition.y === "number" && typeof newPosition.z === "number") {
-//        camera.position.set(newPosition.x, newPosition.y, newPosition.z);
-//    } else {
-//        console.error("Invalid position data received", newPosition, typeof newPosition.X);
-//    }
-
-
-//    console.log("After MoveCamera C# position: ", newPosition)
-//    console.log("After MoveCamera Camera.position: ", camera.position)
-//    console.log("After MoveCamera Camera.direction: ", camera.direction)
- 
-//}
-
-
-
 
 
 
@@ -129,7 +58,11 @@ function addEventListeners() {
     });
 
     window.addEventListener('keydown', function (e) {
+
         keyStates[e.code] = true;
+
+        // Handle block placement and removal
+        handleBlockInteraction(e);
     });
 
     window.addEventListener('keyup', function (e) {
@@ -138,6 +71,7 @@ function addEventListeners() {
             space = false;
     });
 
+   
 
 }
 
@@ -155,3 +89,52 @@ function updateCameraPositionDisplay() {
         cameraElement.textContent = `Camera Position: (X: ${camera.position.x.toFixed(2)}, Y: ${camera.position.y.toFixed(2)}, Z: ${camera.position.z.toFixed(2)})`;
     }
 }
+
+
+
+
+
+// Function to handle block placement and removal
+function handleBlockInteraction(event) {
+    const { code } = event;
+    console.log("handleBlockInteraction");
+    // Define block placement keys
+    const blockPlacementKeys = [
+        'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5',
+        'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0'
+    ];
+
+    // Check if the key is for block placement
+    if (blockPlacementKeys.includes(code)) {
+        placeBlock(); // Function to place a block
+    }
+
+    // Check if the key is the Delete key for block removal
+    if (code === 'Delete') {
+        removeBlock(); // Function to remove a block
+    }
+}
+
+// Function to place a block
+function placeBlock() {
+    // Calculate the block position using raycasting
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children, true);
+
+    if (intersects.length > 0) {
+        const intersect = intersects[0];
+        const blockPosition = intersect.point;
+
+        // Adjust block position to the block grid
+        blockPosition.x = Math.floor(blockPosition.x);
+        blockPosition.y = Math.floor(blockPosition.y);
+        blockPosition.z = Math.floor(blockPosition.z);
+
+        // Send block coordinates to the server via SignalR
+        connection.invoke("HandleBlockInteraction", blockPosition.x, blockPosition.y, blockPosition.z, true)
+            .catch(err => console.error(err.toString()));
+    }
+}
+
+
+

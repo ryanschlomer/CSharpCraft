@@ -49,6 +49,7 @@ public class Physics
         // Update the player's velocity with the potentially clamped vertical velocity
         player.Velocity = new Vector3(player.Velocity.X, newVelocityY, player.Velocity.Z);
     }
+
     private void ProcessInput(Player player, Vector3 movementDelta, Vector3 lookDirection, float stepSize)
     {
         // Define the world up vector
@@ -60,8 +61,6 @@ public class Physics
         // Calculate the movement vector based on current input
         Vector3 currentMovement = (forward * movementDelta.Z + right * -movementDelta.X) * player.Speed;
 
-       
-
         // If deltaY is 1, treat it as a jump request
         if (movementDelta.Y == 1 && player.IsOnGround)
         {
@@ -72,41 +71,27 @@ public class Physics
             player.IsOnGround = false;
         }
 
-        // Apply lateral movement only if on the ground
-        if (player.IsOnGround)
+        // Apply lateral movement only if on the ground or when auto-jumping
+        if (player.IsOnGround || player.AutoJumping)
         {
             // Apply new movement inputs
             player.Velocity = new Vector3(currentMovement.X, player.Velocity.Y, currentMovement.Z);
-        }
-        // If not on the ground, maintain existing lateral momentum, no new input applied
-        else
-        {
-            // Maintain existing lateral momentum without applying new input
-            // Optionally, you might apply a damping factor here to simulate air resistance
         }
 
         // Update player's position
         player.Position += player.Velocity * stepSize;
     }
 
-    // Helper function to calculate the necessary initial velocity to achieve a certain jump height
     private float CalculateJumpVelocity(float jumpHeight)
     {
         // Using the formula v = sqrt(2 * g * h)
         return (float)Math.Sqrt(2 * Gravity * jumpHeight);
     }
 
-
-
-
     private void DetectCollisions(Player player)
     {
         player.IsOnGround = false;
         var candidates = BroadPhase(player);
-        if(candidates.Count >0)
-        {
-            int adfadfasdf = 0;
-        }
         var collisions = NarrowPhase(candidates, player);
 
         if (collisions.Count > 0)
@@ -122,11 +107,10 @@ public class Physics
         int minX = (int)Math.Floor(player.Position.X - player.Radius);
         int maxX = (int)Math.Ceiling(player.Position.X + player.Radius);
         int minY = (int)Math.Floor(player.Position.Y);
-        int maxY = (int)Math.Ceiling(player.Position.Y+player.Height);
+        int maxY = (int)Math.Ceiling(player.Position.Y + player.Height);
         int minZ = (int)Math.Floor(player.Position.Z - player.Radius);
         int maxZ = (int)Math.Ceiling(player.Position.Z + player.Radius);
 
-        //add the -1 and +1 if collision doesn't find anything
         for (int x = minX; x <= maxX; x++)
         {
             for (int y = minY; y <= maxY; y++)
@@ -143,40 +127,27 @@ public class Physics
         return candidates;
     }
 
-
     public List<Collision> NarrowPhase(List<Vector3> candidates, Player player)
     {
         var collisions = new List<Collision>();
 
         foreach (var block in candidates)
         {
-            // Get the point on the block that is closest to the center of the player's bounding cylinder
             var closestPoint = new Vector3(
                 Math.Max(block.X, Math.Min(player.Position.X, block.X + 1)),
-                Math.Max(block.Y, Math.Min(player.Position.Y + (player.Height / 2), block.Y + 1)), // Extending upwards to the player's height
+                Math.Max(block.Y, Math.Min(player.Position.Y + (player.Height / 2), block.Y + 1)),
                 Math.Max(block.Z, Math.Min(player.Position.Z, block.Z + 1))
             );
 
-
-            // Calculate distance along each axis from closest point to the center of the player's bounding cylinder
             float dx = closestPoint.X - player.Position.X;
-            
             float dy = closestPoint.Y - (player.Position.Y + (player.Height / 2));
-
             float dz = closestPoint.Z - player.Position.Z;
 
             if (PointInPlayerBoundingCylinder(closestPoint, player))
             {
-                // Compute the overlap between the point and the player's bounding cylinder along the y-axis and in the xz-plane
                 float overlapY = (player.Height / 2) - Math.Abs(dy);
                 float overlapXZ = player.Radius - (float)Math.Sqrt(dx * dx + dz * dz);
 
-                if(overlapY ==0 && overlapXZ==0)
-                {
-                    int adfasdf = 0; //no overlap in both directions gets here sometimes.
-                }
-                // Compute the normal of the collision (pointing away from the contact point)
-                // and the overlap between the point and the player's bounding cylinder
                 Vector3 normal;
                 float overlap;
                 if (overlapY < overlapXZ)
@@ -191,15 +162,13 @@ public class Physics
                     {
                         if (Math.Abs(dy) < player.Height / 2)
                         {
-                            // There is a vertical overlap, hence a collision
-                            normal = new Vector3(0, -Math.Sign(dy), 0);  // Normal points upwards if dy is positive, downwards if negative
-                            overlap = player.Height / 2 - Math.Abs(dy); // Vertical overlap
-                            player.IsOnGround = dy > 0; // Set on ground if the block is below the player
+                            normal = new Vector3(0, -Math.Sign(dy), 0);
+                            overlap = player.Height / 2 - Math.Abs(dy);
+                            player.IsOnGround = dy > 0;
                         }
                         else
                         {
-                            // No vertical overlap, hence no collision
-                            continue; // Skip to the next iteration of the loop
+                            continue;
                         }
                     }
                     else
@@ -210,37 +179,39 @@ public class Physics
                     overlap = overlapXZ;
                 }
 
+                // Auto-jump logic when hitting a block with no block above
+                if (overlapXZ > 0 && dy == 0 && player.IsOnGround)
+                {
+                    var aboveBlock = new Vector3(block.X, block.Y + 1, block.Z);
+                    if (!ChunkService.IsBlockSolid((int)aboveBlock.X, (int)aboveBlock.Y, (int)aboveBlock.Z))
+                    {
+                        float jumpVelocity = CalculateJumpVelocity(1.1f);
+                        player.Velocity = new Vector3(player.Velocity.X, jumpVelocity, player.Velocity.Z);
+                        player.IsOnGround = false;
+                        player.AutoJumping = true; // Set AutoJumping flag
+                    }
+                }
+
                 collisions.Add(new Collision(block, closestPoint, normal, overlap));
-
-
-                //AddContactPointerHelper(closestPoint);
             }
         }
-
-        //Console.WriteLine($"Narrowphase Collisions: {collisions.Count}");
-
         return collisions;
     }
 
     private bool PointInPlayerBoundingCylinder(Vector3 point, Player player)
     {
-        // Calculate horizontal (XZ plane) distance from the player's center to the point
         float dx = point.X - player.Position.X;
         float dz = point.Z - player.Position.Z;
         float distanceXZ = (float)Math.Sqrt(dx * dx + dz * dz);
 
-        // Check if the point is within the player's radius on the XZ plane
         bool isWithinHorizontalBounds = distanceXZ <= player.Radius;
 
-        // Calculate if the point is vertically within the cylinder
-        float lowerBoundY = player.Position.Y;  // Starts from the feet
-        float upperBoundY = player.Position.Y + player.Height;  // Extends to the full height
+        float lowerBoundY = player.Position.Y;
+        float upperBoundY = player.Position.Y + player.Height;
         bool isWithinVerticalBounds = (point.Y >= lowerBoundY) && (point.Y <= upperBoundY);
 
         return isWithinHorizontalBounds && isWithinVerticalBounds;
     }
-
-
 
     private void ResolveCollisions(List<Collision> collisions, Player player)
     {
@@ -261,13 +232,10 @@ public class Physics
                 player.IsOnGround = true;
         }
 
-
+        // Reset AutoJumping flag after resolving collisions
+        player.AutoJumping = false;
     }
-
-
-
 }
-
 
 public class Collision
 {
@@ -275,7 +243,6 @@ public class Collision
     public Vector3 ContactPoint { get; set; }
     public Vector3 Normal { get; set; }
     public float Overlap { get; set; }
-
 
     public Collision(Vector3 block, Vector3 contactPoint, Vector3 normal, float overlap)
     {

@@ -43,10 +43,11 @@ namespace CSharpCraft.Clases
 
         // Player dimensions and movement properties
         public float Height { get; } = 1.75f;
-        public float Radius { get; } = 0.5f;
+        public float Radius { get; } = 0.45f;
         public float EyeHeight { get; }
-        public float Speed { get; } = 3f + 10f;
-        public float MaxSpeed { get; } = 6f+10f;
+        public float Speed { get; } = 3f;
+        public float MaxSpeed { get; } = 6f;
+        public bool AutoJumping { get; set; } = false;
 
         public Position CameraPosition { 
             get {

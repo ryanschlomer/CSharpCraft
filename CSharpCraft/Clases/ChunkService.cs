@@ -76,17 +76,19 @@ namespace CSharpCraft.Clases
         }
 
 
-        public async Task<Chunk> GetOrCreateChunkAsync(int chunkX, int chunkZ)
+        public async Task<Chunk> GetOrCreateChunkAsync(int chunkX, int chunkZ, bool onlyCreateChunk = false)
         {
-            // Check if the chunk is already loaded
-            if (LoadedChunks.TryGetValue((chunkX, chunkZ), out Chunk chunk))
+            if (!onlyCreateChunk)
             {
-                // Return the chunk if it's already loaded
-                return chunk;
+                // Check if the chunk is already loaded
+                if (LoadedChunks.TryGetValue((chunkX, chunkZ), out Chunk c))
+                {
+                    // Return the chunk if it's already loaded
+                    return c;
+                }
             }
-
             // Generate the chunk asynchronously
-            chunk = await GenerateChunkAsync(chunkX, chunkZ);
+            Chunk chunk = await GenerateChunkAsync(chunkX, chunkZ);
 
             // Add the fully loaded chunk to the ConcurrentDictionary
             LoadedChunks[(chunkX, chunkZ)] = chunk;
@@ -176,10 +178,10 @@ namespace CSharpCraft.Clases
                         {
                             blocks[x, y, z] = 2;//stone
                         }
-                        else if (y < height-3)
+                        else if (y < height-1)
                         {
                             // Set blocks of type 1 up to the height determined by the perlin noise
-                            blocks[x, y, z] = 1; //dirt eventually
+                            blocks[x, y, z] = 6; //dirt 
                         }
  
                         else if (y < height)
@@ -205,7 +207,7 @@ namespace CSharpCraft.Clases
             blocks = GenerateResources(chunkX, chunkZ, blocks);
 
             //create a test building
-            //if (chunkX == 0 && chunkZ == 0) // Check if it's the chunk (0, 0) where you want to build
+            if (chunkX == 0 && chunkZ == 0) // Check if it's the chunk (0, 0) where you want to build
             {
                 Vector3 c1 = new Vector3(1, 18, 1);
                 Vector3 c2 = new Vector3(10, 25, 10);
@@ -238,6 +240,8 @@ namespace CSharpCraft.Clases
                 int fY = (int)c1.Y + 1;
                 blocks[fX, fY, fZ] = 5;
             }
+
+            //Add wood box
             if (chunkX == 0 && chunkZ == 0) // Check if it's the chunk (0, 0) where you want to build
 
             {
@@ -320,24 +324,25 @@ namespace CSharpCraft.Clases
             //}
 
 
-            //double treeProbability = 0.01;
+            double treeProbability = 0.01;
+            //This needs to change to use noise generation and not random
 
-            //// Tree generation after terrain
-            //for (int x = 1; x < MaxChunkSize - 1; x++)
+            // Tree generation after terrain
+            //for (int x = 1; x < VoxelData.ChunkWidth - 1; x++)
             //{
-            //    for (int z = 1; z < MaxChunkSize - 1; z++)
+            //    for (int z = 1; z < VoxelData.ChunkWidth - 1; z++)
             //    {
             //        // Calculate global coordinates
-            //        int globalX = chunkX * MaxChunkSize + x;
-            //        int globalZ = chunkZ * MaxChunkSize + z;
+            //        int globalX = chunkX * VoxelData.ChunkWidth + x;
+            //        int globalZ = chunkZ * VoxelData.ChunkWidth + z;
 
             //        if (random.NextDouble() < treeProbability) // Check if a tree should be generated here
             //        {
             //            int baseHeight = FindTopBlockAt(blocks, x, z); // Use the function to find the top block locally
 
-            //            if (baseHeight >= 0 && blocks[x, baseHeight, z].Type == BlockType.Grass) // Ensure the top block is grass
+            //            if (baseHeight >= 0 && blocks[x, baseHeight, z]== 1) // Ensure the top block is grass
             //            {
-            //                if (baseHeight + 5 < MaxChunkHeight) // Ensure there's enough space for the tree
+            //                if (baseHeight + 5 < VoxelData.ChunkHeight) // Ensure there's enough space for the tree
             //                {
             //                    // Create trunk
             //                    for (int y = baseHeight + 1; y <= baseHeight + 5; y++)
@@ -354,7 +359,7 @@ namespace CSharpCraft.Clases
             //                            {
             //                                int leafX = x + dx;
             //                                int leafZ = z + dz;
-            //                                if (leafX >= 0 && leafX < MaxChunkSize && leafZ >= 0 && leafZ < MaxChunkSize && (baseHeight + dy) < MaxChunkHeight)
+            //                                if (leafX >= 0 && leafX < VoxelData.ChunkWidth && leafZ >= 0 && leafZ < VoxelData.ChunkWidth && (baseHeight + dy) < VoxelData.ChunkHeight)
             //                                {
             //                                    blocks[leafX, baseHeight + dy, leafZ] = new Block(BlockType.Leaves, globalX + dx, baseHeight + dy, globalZ + dz); // Leaf blocks with global coordinates
             //                                }
@@ -380,14 +385,14 @@ namespace CSharpCraft.Clases
 
 
 
-        public async Task LoadChunksAroundAsync(int centerX, int centerZ, int radius)
+        public async Task LoadChunksAroundAsync(int centerX, int centerZ, int radius, bool onlyCreateChunk = false)
         {
             List<Task> loadingTasks = new List<Task>();
             for (int x = centerX - radius; x <= centerX + radius; x++)
             {
                 for (int z = centerZ - radius; z <= centerZ + radius; z++)
                 {
-                    loadingTasks.Add(GetOrCreateChunkAsync(x, z));
+                    loadingTasks.Add(GetOrCreateChunkAsync(x, z, onlyCreateChunk));
                 }
             }
             await Task.WhenAll(loadingTasks);
@@ -396,18 +401,6 @@ namespace CSharpCraft.Clases
         //Can we create methods to load and unload chunks and then call a javascript method in the razor page
         //to send the info to javascript?
 
-
-        //public static void RemoveBlock(string chunkId, int blockX, int blockY, int blockZ)
-        //{
-        //    // Find the chunk with the given chunkId
-        //    (int x, int z) = ChunkService.ConvertChunkIDToCoordinates(chunkId);
-
-        //    if (loadedChunks.TryGetValue((x, z), out Chunk chunk))
-        //    {
-        //        // Remove the block at the specified position
-        //        chunk.RemoveBlock(blockX, blockY, blockZ);
-        //    }
-        //}
 
         public async Task<Chunk> GetChunkAsync(string chunkId)
         {
@@ -420,20 +413,6 @@ namespace CSharpCraft.Clases
             }
             return null;
         }
-
-        //public static async Task<string> DeleteBlock(string chunkId, int x, int y, int z)
-        //{
-        //    Chunk chunk = await GetChunkAsync(chunkId);
-        //    await chunk.RemoveBlockAsync(x, y, z);
-
-        //    var update = new
-        //    {
-        //        ChunkId = chunkId,
-        //        UpdatedBlock = new { X = x, Y = y, Z = z, Type = BlockType.Air }
-        //    };
-
-        //    return JsonSerializer.Serialize(update);
-        //}
 
         public static (int x, int z) ConvertChunkIDToCoordinates(string chunkId)
         {
@@ -549,5 +528,39 @@ namespace CSharpCraft.Clases
             return blocks;
         }
 
+        public async Task<bool> AddBlock(int x, int y, int z, byte blockType)
+        {
+            //get the chunk
+            Vector2 chunkCoords = VoxelData.CalculateChunkPosition(x, z);
+            Chunk chunk = await GetOrCreateChunkAsync((int)chunkCoords.X, (int)chunkCoords.Y);
+
+            //add the block
+            return chunk.AddBlock(x, y, z, blockType);
+        }
+
+        public async Task<bool> RemoveBlock(int x, int y, int z)
+        {
+            //get the chunk
+            Vector2 chunkCoords = VoxelData.CalculateChunkPosition(x, z);
+            Chunk chunk = await GetOrCreateChunkAsync((int)chunkCoords.X, (int)chunkCoords.Y);
+
+            //These might need to get converted to local coords
+            Vector3 localPos = new Vector3(x, y, z) - new Vector3(chunkCoords.X * VoxelData.ChunkWidth, 0, chunkCoords.Y * VoxelData.ChunkWidth);
+
+            //remove the block
+            return chunk.RemoveBlock((int)localPos.X, (int)localPos.Y,(int)localPos.Z);
+        }
+
+        public async Task<byte> GetBlockType(int x, int y, int z)
+        {
+            //get the chunk
+            Vector2 chunkCoords = VoxelData.CalculateChunkPosition(x, z);
+            Chunk chunk = await GetOrCreateChunkAsync((int)chunkCoords.X, (int)chunkCoords.Y);
+
+            //These might need to get converted to local coords
+            Vector3 localPos = new Vector3(x, y, z) - new Vector3(chunkCoords.X * VoxelData.ChunkWidth, 0, chunkCoords.Y * VoxelData.ChunkWidth);
+
+            return chunk.GetBlockType((int)localPos.X, (int)localPos.Y, (int)localPos.Z);
+        }
     }
 }

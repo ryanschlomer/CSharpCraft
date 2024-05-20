@@ -82,8 +82,12 @@ public class GameHub : Hub
 
     public async Task GetChunksToLoad(Player player)
     {
+        if (!VoxelData.DidCameraMoveToNewChunk(player.PreviousPosition, player.Position))
+        {//only check to see if new chunks need to be generated to keep them generated before the player gets there
+            //player.ChunkManager.GenerateChunksAround((int)player.Position.X, (int)player.Position.Y, VoxelData.ChunkViewRadius + 1);
 
-        //Did player move to a new chunk
+        }
+            //Did player move to a new chunk
         if (VoxelData.DidCameraMoveToNewChunk(player.PreviousPosition, player.Position))
         {//Camera moved to another chunk
             (int, int) currentChunkCoords = (
@@ -104,7 +108,7 @@ public class GameHub : Hub
 
             var chunksToRemove = "";
             
-            await Clients.All.SendAsync("ChunksToRemove", player.ChunkManager.ChunksToUnload);
+            await Clients.Caller.SendAsync("ChunksToRemove", player.ChunkManager.ChunksToUnload);
 
             //Update previous chunk coord
 
@@ -116,7 +120,7 @@ public class GameHub : Hub
         player.PreviousPosition = player.Position; //might not be needed. 
     }
 
-    //This method should go to Game Hub amybe
+
     public async Task SendChunksToRenderer(Player player)
     {
     
@@ -136,6 +140,65 @@ public class GameHub : Hub
             return player;
 
         return null;
+    }
+
+    public async Task HandleBlockInteraction(float x, float y, float z, int blockType)
+    {
+        bool success = false;
+        if (blockType!=0)
+        {
+            success = await chunkService.AddBlock((int)x, (int)y, (int)z, (byte)blockType);
+        }
+        else //send in blockType = 0 to delete
+        {
+            success = await chunkService.RemoveBlock((int)x, (int)y, (int)z);
+          
+        }
+
+        if (success)
+        {
+            // Define the region around the deleted block
+            int regionSize = 1; // 1 block radius around the deleted block
+            List<BlockUpdate> blocksToUpdate = new List<BlockUpdate>();
+
+            for (int dx = -regionSize; dx <= regionSize; dx++)
+            {
+                for (int dy = -regionSize; dy <= regionSize; dy++)
+                {
+                    for (int dz = -regionSize; dz <= regionSize; dz++)
+                    {
+                        int blockX = (int)x + dx;
+                        int blockY = (int)y + dy;
+                        int blockZ = (int)z + dz;
+                        byte currentBlockType = await chunkService.GetBlockType(blockX, blockY, blockZ);
+                        //for now, just grab them all and process them on the client.
+                        //We could ignore blockType = 0, but we cannot ignore the one we deleted.
+                        //That block needs to go to all clients.
+                        blocksToUpdate.Add(new BlockUpdate
+                        {
+                            X = blockX,
+                            Y = blockY,
+                            Z = blockZ,
+                            BlockType = currentBlockType
+                        });
+                    }
+                }
+            }
+
+            // Notify all clients about the block updates
+            await Clients.All.SendAsync("UpdateBlocks", blocksToUpdate);
+        }
+            }
+
+    /// <summary>
+    /// Gets the UV Data for all the blok types.
+    /// Client will store this info.
+    /// </summary>
+    /// <returns>List<UVData></returns>
+    public async Task<List<UVData>> GetUVData()
+    {
+        var uvData = VoxelData.CompileUVData();
+        return uvData;
     }
 }
 

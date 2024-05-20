@@ -108,6 +108,11 @@ namespace CSharpCraft.Clases
             }
         }
 
+        public async void GenerateChunksAround(int x, int y, int radius)
+        {
+            ChunkService.LoadChunksAroundAsync(x, y, radius, true);
+        }
+
         private async Task ProcessLoadedChunkAsync(Task<Chunk> loadTask)
         {
             try
