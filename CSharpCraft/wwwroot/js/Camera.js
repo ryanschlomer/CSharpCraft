@@ -106,7 +106,7 @@ function handleBlockInteraction(event) {
 
     // Check if the key is for block placement
     if (blockPlacementKeys.includes(code)) {
-        placeBlock(); // Function to place a block
+        placeBlock(code); // Function to place a block
     }
 
     // Check if the key is the Delete key for block removal
@@ -116,25 +116,22 @@ function handleBlockInteraction(event) {
 }
 
 // Function to place a block
-function placeBlock() {
-    // Calculate the block position using raycasting
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(scene.children, true);
+function placeBlock(code) {
+    // if selectedCoords is not null and selectedNormal is not null
+    if (selectedCoords && selectedNormal) { // verify block is selected
+        // Calculate new block position
+        var x = selectedCoords.x + selectedNormal.x - 0.5;
+        var y = selectedCoords.y + selectedNormal.y - 0.5;
+        var z = selectedCoords.z + selectedNormal.z - 0.5;
 
-    if (intersects.length > 0) {
-        const intersect = intersects[0];
-        const blockPosition = intersect.point;
+        console.log("Placing block at", x, y, z);
 
-        // Adjust block position to the block grid
-        blockPosition.x = Math.floor(blockPosition.x);
-        blockPosition.y = Math.floor(blockPosition.y);
-        blockPosition.z = Math.floor(blockPosition.z);
-
-        // Send block coordinates to the server via SignalR
-        connection.invoke("HandleBlockInteraction", blockPosition.x, blockPosition.y, blockPosition.z, true)
+        // Invoke server method to place block
+        connection.invoke("HandleBlockInteraction", x, y, z, code)
             .catch(err => console.error(err.toString()));
     }
 }
+
 
 
 

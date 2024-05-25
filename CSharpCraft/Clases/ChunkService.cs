@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text.Json;
@@ -172,7 +173,7 @@ namespace CSharpCraft.Clases
                         if (y == 0)
                         {
                             // Set blocks of type 1 up to the height determined by the perlin noise
-                            blocks[x, y, z] = 2;//stone
+                            blocks[x, y, z] = 9;//bedrock
                         }
                         else if (y < height - 6)
                         {
@@ -241,13 +242,13 @@ namespace CSharpCraft.Clases
                 blocks[fX, fY, fZ] = 5;
             }
 
-            //Add wood box
+            //Add stone brick box
             if (chunkX == 0 && chunkZ == 0) // Check if it's the chunk (0, 0) where you want to build
 
             {
                 Vector3 c1 = new Vector3(3, 30, 3);
                 Vector3 c2 = new Vector3(7, 36, 10);
-                blocks = CreateRectangularPrism(blocks, c1, c2, 4);
+                blocks = CreateRectangularPrism(blocks, c1, c2, 11);
 
                 Vector3 c4 = c1 + new Vector3(1, 1, 1);
                 Vector3 c3 = c2 + new Vector3(-1, -1, -1);
@@ -273,104 +274,60 @@ namespace CSharpCraft.Clases
             }
 
 
+            if (chunkX == 1 && chunkZ == 1)
+            {
+                MazeGenerator generator = new MazeGenerator();
+                int mazeYLevel = 20; // Specify the Y level for the maze
+                byte wallBlockType = 10; // Assuming 11 is the wall block type
+                byte floorBlockType = 4; // Assuming 12 is the floor block type
+                byte airBlockType = 0; // Assuming 0 is air
+
+                blocks = generator.GenerateMazeChunk(blocks, mazeYLevel, wallBlockType, floorBlockType, airBlockType);
+            }
+
             #region trees and rocks
-            //// Add rock outcroppings before trees
-            //double rockProbability = 0.05;  // Chance of a rock outcropping in a given chunk
-            //if (random.NextDouble() < rockProbability)
-            //{
-            //    // Calculate the center position in global coordinates
-            //    int centerX = random.Next(3, MaxChunkSize - 3) + chunkX * MaxChunkSize;
-            //    int centerZ = random.Next(3, MaxChunkSize - 3) + chunkZ * MaxChunkSize;
-            //    int baseHeight = 0;  // Finding the height at the global center position
 
-            //    // Convert global coordinates back to local coordinates for accessing the block array
-            //    int localX = centerX % MaxChunkSize;
-            //    int localZ = centerZ % MaxChunkSize;
-
-            //    // Ensure local coordinates are within bounds (should always be true by construction)
-            //    localX = Math.Clamp(localX, 0, MaxChunkSize - 1);
-            //    localZ = Math.Clamp(localZ, 0, MaxChunkSize - 1);
-
-            //    while (baseHeight < MaxChunkHeight && blocks[localX, baseHeight, localZ] != null)
-            //    {
-            //        baseHeight++;
-            //    }
-
-            //    int radius = random.Next(2, 5);  // Random radius of rock outcropping
-            //    int heightIncrease = random.Next(2, 4);  // Height variation of the rock
-
-            //    // Generate a roughly spherical rock outcropping using global coordinates
-            //    for (int x = centerX - radius; x <= centerX + radius; x++)
-            //    {
-            //        for (int z = centerZ - radius; z <= centerZ + radius; z++)
-            //        {
-            //            for (int y = baseHeight; y <= baseHeight + heightIncrease; y++)
-            //            {
-            //                int localBlockX = x % MaxChunkSize;
-            //                int localBlockZ = z % MaxChunkSize;
-
-            //                // Check bounds within the chunk
-            //                if (localBlockX >= 0 && localBlockX < MaxChunkSize && localBlockZ >= 0 && localBlockZ < MaxChunkSize && y < MaxChunkHeight)
-            //                {
-            //                    double distance = Math.Sqrt(Math.Pow(x - centerX, 2) + Math.Pow(z - centerZ, 2) + Math.Pow(y - baseHeight, 2));
-            //                    if (distance <= radius)
-            //                    {
-            //                        blocks[localBlockX, y, localBlockZ] = new Block(BlockType.Stone, x, y, z); // Set block type to Stone
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
 
 
             double treeProbability = 0.01;
             //This needs to change to use noise generation and not random
 
-            // Tree generation after terrain
-            //for (int x = 1; x < VoxelData.ChunkWidth - 1; x++)
-            //{
-            //    for (int z = 1; z < VoxelData.ChunkWidth - 1; z++)
-            //    {
-            //        // Calculate global coordinates
-            //        int globalX = chunkX * VoxelData.ChunkWidth + x;
-            //        int globalZ = chunkZ * VoxelData.ChunkWidth + z;
+            //Tree generation after terrain
 
-            //        if (random.NextDouble() < treeProbability) // Check if a tree should be generated here
-            //        {
-            //            int baseHeight = FindTopBlockAt(blocks, x, z); // Use the function to find the top block locally
+            for (int x = 1; x < VoxelData.ChunkWidth - 1; x++)
+            {
+                for (int z = 1; z < VoxelData.ChunkWidth - 1; z++)
+                {
+                    // Calculate global coordinates
+                    int globalX = chunkX * VoxelData.ChunkWidth + x;
+                    int globalZ = chunkZ * VoxelData.ChunkWidth + z;
 
-            //            if (baseHeight >= 0 && blocks[x, baseHeight, z]== 1) // Ensure the top block is grass
-            //            {
-            //                if (baseHeight + 5 < VoxelData.ChunkHeight) // Ensure there's enough space for the tree
-            //                {
-            //                    // Create trunk
-            //                    for (int y = baseHeight + 1; y <= baseHeight + 5; y++)
-            //                    {
-            //                        blocks[x, y, z] = new Block(BlockType.Trunk, globalX, y, globalZ); // Trunk blocks with global coordinates
-            //                    }
+                    if (random.NextDouble() < treeProbability) // Check if a tree should be generated here
+                    {
+                        int baseHeight = FindTopBlockAt(blocks, x, z); // Use the function to find the top block locally
 
-            //                    // Create a simple leaf canopy above the trunk
-            //                    for (int dx = -1; dx <= 1; dx++)
-            //                    {
-            //                        for (int dz = -1; dz <= 1; dz++)
-            //                        {
-            //                            for (int dy = 4; dy <= 6; dy++)
-            //                            {
-            //                                int leafX = x + dx;
-            //                                int leafZ = z + dz;
-            //                                if (leafX >= 0 && leafX < VoxelData.ChunkWidth && leafZ >= 0 && leafZ < VoxelData.ChunkWidth && (baseHeight + dy) < VoxelData.ChunkHeight)
-            //                                {
-            //                                    blocks[leafX, baseHeight + dy, leafZ] = new Block(BlockType.Leaves, globalX + dx, baseHeight + dy, globalZ + dz); // Leaf blocks with global coordinates
-            //                                }
-            //                            }
-            //                        }
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
+                        if (baseHeight >= 0 && blocks[x, baseHeight, z] == 1) // Ensure the top block is grass
+                        {
+                            if (baseHeight + 10 < VoxelData.ChunkHeight) // Ensure there's enough space for the tree
+                            {
+                                // Create trunk
+                                for (int y = baseHeight + 1; y <= baseHeight + 7; y++)
+                                {
+                                    blocks[x, y, z] = 8;
+                                }
+
+                                // Create branches
+                                //CreateBranch(blocks, x, baseHeight + 5, z, 2);
+                                //CreateBranch(blocks, x, baseHeight + 6, z, 2);
+                                //CreateBranch(blocks, x, baseHeight + 7, z, 1);
+
+                                // Create leaf canopy
+                                CreateLeafCanopy(blocks, x, baseHeight + 6, z);
+                            }
+                        }
+                    }
+                }
+            }
 
             #endregion
 
@@ -382,6 +339,65 @@ namespace CSharpCraft.Clases
             return chunk;
         }
 
+        // Function to create a branch
+        void CreateBranch(byte[,,] blocks, int startX, int startY, int startZ, int length)
+        {
+            Random random = new Random();
+            int directionX = random.Next(0, 2) == 0 ? -1 : 1; // Randomize branch direction
+            int directionZ = random.Next(0, 2) == 0 ? -1 : 1;
+
+            for (int i = 0; i < length; i++)
+            {
+                int branchX = startX + (i * directionX);
+                int branchZ = startZ + (i * directionZ);
+
+                if (branchX >= 0 && branchX < VoxelData.ChunkWidth && branchZ >= 0 && branchZ < VoxelData.ChunkWidth && (startY + i) < VoxelData.ChunkHeight)
+                {
+                    blocks[branchX, startY + i, branchZ] = 8;
+
+                    // Add leaves around the branch
+                    CreateLeafCanopy(blocks, branchX, startY + i, branchZ, 1);
+                }
+            }
+        }
+
+        // Function to create a leaf canopy
+        void CreateLeafCanopy(byte[,,] blocks, int centerX, int centerY, int centerZ, int radius = 2)
+        {
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                for (int dz = -radius; dz <= radius; dz++)
+                {
+                    for (int dy = -1; dy <= 1; dy++)
+                    {
+                        int leafX = centerX + dx;
+                        int leafY = centerY + dy;
+                        int leafZ = centerZ + dz;
+
+                        if (leafX >= 0 && leafX < VoxelData.ChunkWidth && leafY >= 0 && leafY < VoxelData.ChunkHeight && leafZ >= 0 && leafZ < VoxelData.ChunkWidth)
+                        {
+                            // Add leaves in a spherical shape
+                            if (Math.Abs(dx) + Math.Abs(dy) + Math.Abs(dz) <= radius)
+                            {
+                                blocks[leafX, leafY, leafZ] = 7;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        public int FindTopBlockAt(byte[,,] blocks, int x, int z)
+        {
+            for (int y = VoxelData.ChunkHeight - 1; y >= 0; y--)
+            {
+                if (blocks[x, y, z] != 0) //not air //will need to change to something else maybe
+                {
+                    return y;
+                }
+            }
+            // Return -1 if no solid block is found (indicating all blocks in the column are empty)
+            return -1;
+        }
 
 
 
@@ -506,25 +522,29 @@ namespace CSharpCraft.Clases
         /// <returns></returns>
         public byte[,,] CreateRectangularPrism(byte[,,] blocks, Vector3 start, Vector3 end, byte blockType)
         {
-            // Calculate the minimum and maximum bounds to handle any order of corners
-            int minX = (int)Math.Min(start.X, end.X);
-            int maxX = (int)Math.Max(start.X, end.X);
-            int minY = (int)Math.Min(start.Y, end.Y);
-            int maxY = (int)Math.Max(start.Y, end.Y);
-            int minZ = (int)Math.Min(start.Z, end.Z);
-            int maxZ = (int)Math.Max(start.Z, end.Z);
-
-            // Loop through all coordinates within the bounds and set the block type
-            for (int x = minX; x <= maxX; x++)
+            try
             {
-                for (int y = minY; y <= maxY; y++)
+                // Calculate the minimum and maximum bounds to handle any order of corners
+                int minX = (int)Math.Min(start.X, end.X);
+                int maxX = (int)Math.Max(start.X, end.X);
+                int minY = (int)Math.Min(start.Y, end.Y);
+                int maxY = (int)Math.Max(start.Y, end.Y);
+                int minZ = (int)Math.Min(start.Z, end.Z);
+                int maxZ = (int)Math.Max(start.Z, end.Z);
+
+                // Loop through all coordinates within the bounds and set the block type
+                for (int x = minX; x <= maxX; x++)
                 {
-                    for (int z = minZ; z <= maxZ; z++)
+                    for (int y = minY; y <= maxY; y++)
                     {
-                        blocks[x, y, z] = blockType;
+                        for (int z = minZ; z <= maxZ; z++)
+                        {
+                            blocks[x, y, z] = blockType;
+                        }
                     }
                 }
             }
+            catch (Exception e) { }
             return blocks;
         }
 
@@ -534,8 +554,10 @@ namespace CSharpCraft.Clases
             Vector2 chunkCoords = VoxelData.CalculateChunkPosition(x, z);
             Chunk chunk = await GetOrCreateChunkAsync((int)chunkCoords.X, (int)chunkCoords.Y);
 
+            Vector3 localPos = new Vector3(x, y, z) - new Vector3(chunkCoords.X * VoxelData.ChunkWidth, 0, chunkCoords.Y * VoxelData.ChunkWidth);
+
             //add the block
-            return chunk.AddBlock(x, y, z, blockType);
+            return chunk.AddBlock((int)localPos.X, (int)localPos.Y, (int)localPos.Z, blockType);
         }
 
         public async Task<bool> RemoveBlock(int x, int y, int z)

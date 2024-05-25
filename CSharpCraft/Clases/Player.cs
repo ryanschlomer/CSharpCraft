@@ -5,6 +5,7 @@ using System.Numerics;
 using static System.Runtime.CompilerServices.RuntimeHelpers;
 using System.Security.Cryptography.Xml;
 using Microsoft.AspNetCore.SignalR;
+using CSharpCraft.Clases.Item;
 
 namespace CSharpCraft.Clases
 {
@@ -39,7 +40,13 @@ namespace CSharpCraft.Clases
         public Vector3 Direction { get; set; }
         public Vector3 Velocity { get; set; }
         public bool IsOnGround { get; set; }
-        public BoundingBox BoundingBox { get; set; }
+        public BoundingCylinder BoundingCylinder
+        {
+            get
+            {
+                return new BoundingCylinder(Position, Radius, Height);
+            }
+        }
 
         // Player dimensions and movement properties
         public float Height { get; } = 1.75f;
@@ -48,6 +55,7 @@ namespace CSharpCraft.Clases
         public float Speed { get; } = 3f;
         public float MaxSpeed { get; } = 6f;
         public bool AutoJumping { get; set; } = false;
+        public Item.Item CurrentItem { get; set; }
 
         public Position CameraPosition { 
             get {
@@ -61,34 +69,34 @@ namespace CSharpCraft.Clases
             Direction = new Vector3(0, 0, -1); // Initial direction
             Velocity = new Vector3(0, 0, 0); // Initial velocity
             EyeHeight = Height - 0.2f; // Eye height from the ground
-            UpdateBoundingBox();
+            //UpdateBoundingBox();
         }
 
         // Update the player's bounding box based on the current position
-        private void UpdateBoundingBox()
-        {
-            Vector3 min = new Vector3(Position.X - Radius, Position.Y, Position.Z - Radius);
-            Vector3 max = new Vector3(Position.X + Radius, Position.Y + Height, Position.Z + Radius);
-            BoundingBox = new BoundingBox(min, max);
-        }
+        //private void UpdateBoundingBox()
+        //{
+        //    Vector3 min = new Vector3(Position.X - Radius, Position.Y, Position.Z - Radius);
+        //    Vector3 max = new Vector3(Position.X + Radius, Position.Y + Height, Position.Z + Radius);
+        //    BoundingBox = new BoundingBox(min, max);
+        //}
 
         // Process movement input and check for collisions
-        public void UpdatePosition(float deltaTime, Vector3 movementDelta, Vector3 lookDirection)
-        {
-            if(movementDelta.Length() > 0)
-            {
-                int asdfadsf = 0;
-            }
-            Direction = lookDirection;
-            Vector3 proposedMovement = CalculateMovement(deltaTime, movementDelta);
-            Vector3 potentialPosition = Position + proposedMovement;
+        //public void UpdatePosition(float deltaTime, Vector3 movementDelta, Vector3 lookDirection)
+        //{
+        //    if(movementDelta.Length() > 0)
+        //    {
+        //        int asdfadsf = 0;
+        //    }
+        //    Direction = lookDirection;
+        //    Vector3 proposedMovement = CalculateMovement(deltaTime, movementDelta);
+        //    Vector3 potentialPosition = Position + proposedMovement;
 
-            // Perform collision detection
-            Vector3 collisionResponse = CheckForCollision(deltaTime, potentialPosition);
-            Position += proposedMovement + collisionResponse;
+        //    // Perform collision detection
+        //    Vector3 collisionResponse = CheckForCollision(deltaTime, potentialPosition);
+        //    Position += proposedMovement + collisionResponse;
 
-            UpdateBoundingBox();
-        }
+        //    UpdateBoundingBox();
+        //}
 
         // Calculate the new movement vector based on input
         private Vector3 CalculateMovement(float deltaTime, Vector3 movementDelta)

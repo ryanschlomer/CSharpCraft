@@ -1,16 +1,17 @@
 ﻿// File: Hubs/GameHub.cs
 using CSharpCraft.Clases;
-
+using CSharpCraft.Clases.Item;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.JSInterop;
 using System.Numerics;
 using System.Text.Json;
 using System.Threading.Tasks;
+using CSharpCraft.Clases.Item;
 
 public class GameHub : Hub
 {
 
- 
+
     ChunkService chunkService { get; set; }
     private PlayerManager _playerManager;
     private readonly Physics _physics;
@@ -63,9 +64,9 @@ public class GameHub : Hub
         if (player != null)
         {
             Vector3 movementDelta = new Vector3(xDelta, yDelta, zDelta);
-            if(movementDelta != Vector3.Zero)
+            if (movementDelta != Vector3.Zero)
             {
-                Console.WriteLine("mevementDelta: " +  movementDelta);
+                Console.WriteLine("mevementDelta: " + movementDelta);
             }
             Vector3 lookDirection = new Vector3(dirX, dirY, dirZ);
             //movementDelta = new Vector3(xDelta, 1, zDelta);
@@ -87,7 +88,7 @@ public class GameHub : Hub
             //player.ChunkManager.GenerateChunksAround((int)player.Position.X, (int)player.Position.Y, VoxelData.ChunkViewRadius + 1);
 
         }
-            //Did player move to a new chunk
+        //Did player move to a new chunk
         if (VoxelData.DidCameraMoveToNewChunk(player.PreviousPosition, player.Position))
         {//Camera moved to another chunk
             (int, int) currentChunkCoords = (
@@ -100,14 +101,14 @@ public class GameHub : Hub
 
 
             await SendChunksToRenderer(player);
-          
+
 
 
             //unload out of range chunks
 
 
             var chunksToRemove = "";
-            
+
             await Clients.Caller.SendAsync("ChunksToRemove", player.ChunkManager.ChunksToUnload);
 
             //Update previous chunk coord
@@ -123,7 +124,7 @@ public class GameHub : Hub
 
     public async Task SendChunksToRenderer(Player player)
     {
-    
+
         //load new chunks
         await player.ChunkManager.LoadAndProcessChunksAroundAsync();
     }
@@ -142,53 +143,85 @@ public class GameHub : Hub
         return null;
     }
 
-    public async Task HandleBlockInteraction(float x, float y, float z, int blockType)
+    public async Task HandleBlockInteraction(float x, float y, float z, string code)
     {
-        bool success = false;
-        if (blockType!=0)
-        {
-            success = await chunkService.AddBlock((int)x, (int)y, (int)z, (byte)blockType);
-        }
-        else //send in blockType = 0 to delete
-        {
-            success = await chunkService.RemoveBlock((int)x, (int)y, (int)z);
-          
-        }
+        //REMOVE = RemoveBlock
 
-        if (success)
+        bool removeSuccess = false;
+        bool addSuccess = false;
+        bool playerInWay = false;
+        if (code != "REMOVE")
         {
-            // Define the region around the deleted block
-            int regionSize = 1; // 1 block radius around the deleted block
-            List<BlockUpdate> blocksToUpdate = new List<BlockUpdate>();
+            byte blockType = 1; //get this based on the code sent
 
-            for (int dx = -regionSize; dx <= regionSize; dx++)
+            BoundingBox block = new BoundingBox(new Vector3(x, y, z), new Vector3(x + 1, y + 1, z + 1));
+            //Need to see if any players are in the block area
+            foreach (Player p in _playerManager.GetAllPlayers())
             {
-                for (int dy = -regionSize; dy <= regionSize; dy++)
+                if (p.BoundingCylinder.Intersects(block))
                 {
-                    for (int dz = -regionSize; dz <= regionSize; dz++)
-                    {
-                        int blockX = (int)x + dx;
-                        int blockY = (int)y + dy;
-                        int blockZ = (int)z + dz;
-                        byte currentBlockType = await chunkService.GetBlockType(blockX, blockY, blockZ);
-                        //for now, just grab them all and process them on the client.
-                        //We could ignore blockType = 0, but we cannot ignore the one we deleted.
-                        //That block needs to go to all clients.
-                        blocksToUpdate.Add(new BlockUpdate
-                        {
-                            X = blockX,
-                            Y = blockY,
-                            Z = blockZ,
-                            BlockType = currentBlockType
-                        });
-                    }
+                    playerInWay = true;
+                    break;
                 }
             }
 
-            // Notify all clients about the block updates
-            await Clients.All.SendAsync("UpdateBlocks", blocksToUpdate);
-        }
+            if (!playerInWay)
+                addSuccess = await chunkService.AddBlock((int)x, (int)y, (int)z, (byte)blockType);
+
+            if (addSuccess)
+            {
+                List<BlockUpdate> blocksToUpdate = new List<BlockUpdate>();
+                blocksToUpdate.Add(new BlockUpdate
+                {
+                    X = (int)x,
+                    Y = (int)y,
+                    Z = (int)z,
+                    BlockType = blockType
+                });
+
+                //Send block to all clients
+                await Clients.All.SendAsync("UpdateBlocks", blocksToUpdate);
             }
+        }
+        else //send in blockType = 0 to delete
+        {
+            removeSuccess = await chunkService.RemoveBlock((int)x, (int)y, (int)z);
+
+            if (removeSuccess)
+            {
+                // Define the region around the deleted block
+                int regionSize = 1; // 1 block radius around the deleted block
+                List<BlockUpdate> blocksToUpdate = new List<BlockUpdate>();
+
+                for (int dx = -regionSize; dx <= regionSize; dx++)
+                {
+                    for (int dy = -regionSize; dy <= regionSize; dy++)
+                    {
+                        for (int dz = -regionSize; dz <= regionSize; dz++)
+                        {
+                            int blockX = (int)x + dx;
+                            int blockY = (int)y + dy;
+                            int blockZ = (int)z + dz;
+                            byte currentBlockType = await chunkService.GetBlockType(blockX, blockY, blockZ);
+                            //for now, just grab them all and process them on the client.
+                            //We could ignore blockType = 0, but we cannot ignore the one we deleted.
+                            //That block needs to go to all clients.
+                            blocksToUpdate.Add(new BlockUpdate
+                            {
+                                X = blockX,
+                                Y = blockY,
+                                Z = blockZ,
+                                BlockType = currentBlockType
+                            });
+                        }
+                    }
+                }
+
+                // Notify all clients about the block updates
+                await Clients.All.SendAsync("UpdateBlocks", blocksToUpdate);
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the UV Data for all the blok types.
@@ -199,6 +232,35 @@ public class GameHub : Hub
     {
         var uvData = VoxelData.CompileUVData();
         return uvData;
+    }
+
+    public async Task<Item> GetCurrentItem()
+    {
+        var player = _playerManager.GetPlayer(Context.ConnectionId);
+        if (player != null)
+        {
+            if(player.CurrentItem == null)
+            {
+                //add a pick for now
+                player.CurrentItem = new Pickaxe("Iron Pickaxe", 100, "./Graphics/Models/pickaxe.glb", 100, 1.0f);
+            }
+            return player.CurrentItem;
+        }
+
+        return null;
+    }
+
+    public async Task<Item> SetCurrentItem(int itemId)
+    {
+        var player = _playerManager.GetPlayer(Context.ConnectionId);
+        if (player != null)
+        {
+            //add a pick for now
+            player.CurrentItem = new Pickaxe("Iron Pickaxe", 100, "./Graphics/Models/pickaxe.glb", 100, 1.0f);
+            return player.CurrentItem;
+        }
+
+        return null;
     }
 }
 

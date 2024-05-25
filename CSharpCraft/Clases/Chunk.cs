@@ -275,6 +275,7 @@ namespace CSharpCraft.Clases
                 return false;
             byte block = Blocks[x, y, z];
             if (block == 0) //add block if there's an air block there now
+                //This will eventually have to handle other types of non-solid blocks like water and lava
             {
                 Blocks[x, y, z] = blockType;
                 MeshDataChanged = true;

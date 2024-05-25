@@ -8,7 +8,7 @@ namespace CSharpCraft.Clases
     {
 
         public static readonly int ChunkWidth = 16;
-        public static readonly int ChunkHeight = 128;
+        public static readonly int ChunkHeight = 64;
         public static int ChunkViewRadius = 1; //This needs to be on the player object
 
         public static readonly int TextureAtlasSizeInBlocks = 4;
@@ -158,6 +158,51 @@ namespace CSharpCraft.Clases
                     BottomFaceTexture = 6,
                     LeftFaceTexture = 5,
                     RightFaceTexture = 5,
+                    Scale = new Vector3(20,10,20),
+                    Scarcity = 0.05f,
+                }
+            },
+               {
+                 9, new BlockType
+                {
+                    IsSolid = true, // Bedrock
+                    TextureAtlas = "/Graphics/Blocks.png",
+                    BackFaceTexture = 9,
+                    FrontFaceTexture =9,
+                    TopFaceTexture =9,
+                    BottomFaceTexture = 9,
+                    LeftFaceTexture = 9,
+                    RightFaceTexture = 9,
+                    Scale = new Vector3(20,10,20),
+                    Scarcity = 0.05f,
+                }
+            },
+               {
+                 10, new BlockType
+                {
+                    IsSolid = true, // Cobblestone
+                    TextureAtlas = "/Graphics/Blocks2.png",
+                    BackFaceTexture = 8,
+                    FrontFaceTexture =8,
+                    TopFaceTexture =8,
+                    BottomFaceTexture = 8,
+                    LeftFaceTexture = 8,
+                    RightFaceTexture = 8,
+                    Scale = new Vector3(20,10,20),
+                    Scarcity = 0.05f,
+                }
+            },
+               {
+                 11, new BlockType
+                {
+                    IsSolid = true, // Stone brick
+                    TextureAtlas = "/Graphics/Blocks2.png",
+                    BackFaceTexture = 4,
+                    FrontFaceTexture =4,
+                    TopFaceTexture =4,
+                    BottomFaceTexture = 4,
+                    LeftFaceTexture = 4,
+                    RightFaceTexture = 4,
                     Scale = new Vector3(20,10,20),
                     Scarcity = 0.05f,
                 }

@@ -9,6 +9,7 @@ namespace CSharpCraft.Clases
         public string BlockName { get; set; }
         public bool IsSolid { get; set; }
 
+        public int Durablitly { get; set; }
         public string TextureAtlas { get; set; }
         //[Header("Texture Values")]
         public int BackFaceTexture { get; set; }
@@ -22,18 +23,7 @@ namespace CSharpCraft.Clases
         public Vector3 Scale { get; set; }
         public float Scarcity { get; set; }
 
-        //public Dictionary<string, UVPoint[]> GetUVs()
-        //{
-        //    return new Dictionary<string, UVPoint[]>
-        //{
-        //    { "BackFace", UVCalculator.GetUVCoordinates(BackFaceTexture) },
-        //    { "FrontFace", UVCalculator.GetUVCoordinates(FrontFaceTexture) },
-        //    { "TopFace", UVCalculator.GetUVCoordinates(TopFaceTexture) },
-        //    { "BottomFace", UVCalculator.GetUVCoordinates(BottomFaceTexture) },
-        //    { "LeftFace", UVCalculator.GetUVCoordinates(LeftFaceTexture) },
-        //    { "RightFace", UVCalculator.GetUVCoordinates(RightFaceTexture) }
-        //};
-        //}
+     
 
         public int GetTextureID(int faceIndex)
         {
@@ -65,7 +55,6 @@ namespace CSharpCraft.Clases
     {
         public byte BlockId { get; set; }
         public Position Position { get; set; }
-        //public Dictionary<string, UVPoint[]> UVs { get; set; }
     }
 
     public class UVPoint
@@ -86,6 +75,8 @@ namespace CSharpCraft.Clases
         public string TextureAtlas { get; set; }
         public string BlockName { get; set; }
         public bool IsSolid { get; set; }
+
+
         public Dictionary<string, UVPoint[]> Faces { get; set; }
     }
 

@@ -63,7 +63,7 @@
 
         currentPlayer = await InteropHelper.InitializePlayerFromJS();
         Console.WriteLine($"CurrentPlayer: {currentPlayer.ConnectionId}");
-        logMessage = "";
+        logMessage = "Generating Terrain";
         //Need to handle this differently I am guessing. If it's loading chunks
         //This needs to make sure only one player kicks it off.
         await ChunkService.LoadChunksAroundAsync(0, 0, VoxelData.ChunkViewRadius+2);
@@ -73,8 +73,11 @@
         currentPlayer.Position = spawnPoint;
         Console.WriteLine($"SpawnPoint: X={spawnPoint.X}, Y={spawnPoint.Y}, Z={spawnPoint.Z}");
 
+        logMessage = "Finishing up connection";
         var dotNetObjectReference = DotNetObjectReference.Create(this);
         await JSRuntime.InvokeVoidAsync("GetCameraComponent.registerComponent", dotNetObjectReference);
+        logMessage = "";
+
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

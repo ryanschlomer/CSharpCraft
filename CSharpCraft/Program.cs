@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.SignalR;
 using System.Linq;
 using CSharpCraft.Clases;
-
+using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,8 +52,22 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseRouting();
 
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ServeUnknownFileTypes = true, // Allow serving unknown file types
+    DefaultContentType = "application/octet-stream",
+    ContentTypeProvider = new FileExtensionContentTypeProvider
+    {
+        Mappings =
+            {
+                [".glb"] = "model/gltf-binary"
+            }
+    }
+});
+
+app.UseRouting();
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapBlazorHub();
@@ -65,5 +79,7 @@ app.MapControllers();
 
 // In Configure:
 app.UseCors("AllowAll");
+
+app.UseAuthorization(); // Ensure this line is present before endpoint mapping
 
 app.Run();
