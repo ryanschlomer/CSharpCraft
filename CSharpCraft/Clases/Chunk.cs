@@ -44,12 +44,19 @@ namespace CSharpCraft.Clases
             // Create the ID by padding the ChunkX and ChunkZ values
             ChunkId = $"{FormatCoordinate(ChunkX)}{FormatCoordinate(ChunkZ)}";
         }
+        public static string GetChunkIdByCoords(int x, int z)
+        {
+            // Create the ID by padding the ChunkX and ChunkZ values
+            return $"{string.Format("{0:+00000;-00000}", x)}{string.Format("{0:+00000;-00000}", z)}";
+        }
 
         private string FormatCoordinate(int coordinate)
         {
             // Format the coordinate with a sign (+/-) and pad it to 5 digits
             return string.Format("{0:+00000;-00000}", coordinate);
         }
+
+      
 
         public void SetBlocks(byte[,,] blocks)
         {

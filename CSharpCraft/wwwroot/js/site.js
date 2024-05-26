@@ -727,14 +727,17 @@ connection.on("UpdateBlocks", (blocksToUpdate) => {
 
     // Update the blocks in the local scene
     blocksToUpdate.forEach(block => {
-        const { x, y, z, blockType } = block;
+        const { x, y, z, blockType, chunkId } = block;
         if (blockType === 0) {
             // Remove block (or set to air)
             removeBlockInstance(x, y, z);
         } else {
             // Add or update block
 
-            addBlockInstance(x, y, z, blockType);
+            //need to figure out why the new block isn't visible
+            //and why the screen flashes.
+            console.log("x, y, z, blockType, chunkId:", x, y, z, blockType, chunkId);
+            addBlockInstance(x, y, z, blockType, chunkId);
         }
     });
 });
@@ -756,7 +759,7 @@ function updateRaycasterObjects() {
 
     // Update the list of objects for raycaster to intersect
     raycaster.objects = scene.children.filter(child => child instanceof THREE.InstancedMesh);
-    console.log("Raycaster objects updated:", raycaster.objects);
+    //console.log("Raycaster objects updated:", raycaster.objects);
 }
 
 function removeBlockInstance(x, y, z) {
@@ -776,12 +779,12 @@ function removeBlockInstance(x, y, z) {
 
     console.log("removeBlockInstance():");
     console.log("BlockKey:", blockKey);
-    console.log("BlockData:", blockData);
-    console.log("Mesh Information:");
-    console.log("Mesh Name:", mesh.name);
-    console.log("Mesh Type:", mesh.type);
-    console.log("Mesh Material:", mesh.material);
-    console.log(`Instance count before removal: ${mesh.count}`);
+    //console.log("BlockData:", blockData);
+    //console.log("Mesh Information:");
+    //console.log("Mesh Name:", mesh.name);
+    //console.log("Mesh Type:", mesh.type);
+    //console.log("Mesh Material:", mesh.material);
+    //console.log(`Instance count before removal: ${mesh.count}`);
 
     if (instanceId >= mesh.count || instanceId < 0) {
         console.error(`Instance ID ${instanceId} is out of bounds`);
@@ -799,9 +802,9 @@ function removeBlockInstance(x, y, z) {
         const lastMatrix = new THREE.Matrix4();
         mesh.getMatrixAt(lastIndex, lastMatrix);
 
-        console.log("Matrix of instance to be removed (before swap):", removedMatrix.elements);
-        console.log("Matrix of last instance (before swap):", lastMatrix.elements);
-        console.log("Index positions swapped:", instanceId, lastIndex);
+        //console.log("Matrix of instance to be removed (before swap):", removedMatrix.elements);
+        //console.log("Matrix of last instance (before swap):", lastMatrix.elements);
+        //console.log("Index positions swapped:", instanceId, lastIndex);
 
         // Swap the matrix of the last instance with the matrix of the instance to be removed
         mesh.setMatrixAt(instanceId, lastMatrix);
@@ -821,16 +824,16 @@ function removeBlockInstance(x, y, z) {
         // Update the instance ID
         if (lastInstanceIdKey) {
             blockInstanceIds[lastInstanceIdKey].instanceId = instanceId;
-            console.log("Updated instance ID for last instance:", lastInstanceIdKey);
+            //console.log("Updated instance ID for last instance:", lastInstanceIdKey);
         }
     } else {
-        console.log("Removing last instance directly:", instanceId);
+        //console.log("Removing last instance directly:", instanceId);
     }
 
     // Decrease the instance count
     mesh.count--;
 
-    console.log(`Instance count after removal: ${mesh.count}`);
+    //console.log(`Instance count after removal: ${mesh.count}`);
 
     // Notify the instanced mesh we updated the instance matrix
     mesh.instanceMatrix.needsUpdate = true;
@@ -842,48 +845,50 @@ function removeBlockInstance(x, y, z) {
     // Remove the block from blockInstanceIds
     delete blockInstanceIds[blockKey];
 
-    console.log(`Block at ${x}, ${y}, ${z} removed successfully.`);
+    //console.log(`Block at ${x}, ${y}, ${z} removed successfully.`);
 
     // Update raycaster objects
     updateRaycasterObjects();
 }
 
-function addBlockInstance(x, y, z, blockType) {
+
+
+function addBlockInstance(x, y, z, blockId, chunkId) {
     const blockKey = `${x}_${y}_${z}`;
 
     if (blockInstanceIds[blockKey]) {
-        // console.log(`Block at ${blockKey} already exists.`);
         return;
     }
+    console.log("Enter Add Block Instance");
 
-    //We need to handle the situation where a mesh doesnot exist for a block type
-
-    // Check if there's an existing instanced mesh for the block type
     let instancedMesh = null;
     for (let child of scene.children) {
-        if (child.isInstancedMesh && child.name.endsWith(`_${blockType}`)) {
+        if (child.isInstancedMesh && child.name === `${chunkId}_${blockId}`) {
             instancedMesh = child;
             break;
         }
     }
 
     if (!instancedMesh) {
-        // Create a new instanced mesh for the block type
+        console.log("Instanced Mesh does not exist.");
+
         const maxCount = window.voxelData.ChunkWidth * window.voxelData.ChunkWidth * window.voxelData.ChunkHeight;
         const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
         const uvArray = new Float32Array(maxCount * 4 * 6 * 2); // 4 UVs per face, 6 faces, 2 coordinates per UV
         blockGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvArray, 2));
 
+        // Ensure you fetch the material and faces from UVs[blockId]
+        const { material, faces } = UVs[blockId];
         instancedMesh = new THREE.InstancedMesh(blockGeometry, material, maxCount);
-        instancedMesh.name = `newMesh_${blockType}`;
+        instancedMesh.name = `${chunkId}_${blockId}`;
         instancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         instancedMesh.count = 0;
         scene.add(instancedMesh);
+        console.log("Finished adding new mesh.");
     }
 
     const index = instancedMesh.count++;
 
-    // Adjust positions
     const adjustedX = x + 0.5;
     const adjustedZ = z + 0.5;
     const adjustedY = y + 0.5;
@@ -891,18 +896,16 @@ function addBlockInstance(x, y, z, blockType) {
     const matrix = new THREE.Matrix4().makeTranslation(adjustedX, adjustedY, adjustedZ);
     instancedMesh.setMatrixAt(index, matrix);
 
-    // Store the instance ID in blockInstanceIds
     blockInstanceIds[blockKey] = { mesh: instancedMesh, instanceId: index };
 
-    // Set UV data for each face using UVs
     const uvArray = instancedMesh.geometry.attributes.uv.array;
-    let offset = index * 4 * 6 * 2; // Starting offset for this instance's UVs
+    let offset = index * 4 * 6 * 2;
 
-    const faces = ['BackFace', 'FrontFace', 'TopFace', 'BottomFace', 'LeftFace', 'RightFace'];
-    const blockUVs = UVs[blockType].faces; // Get UVs for the block type
+    const faces = UVs[blockId].faces; // Get UVs for the block type
+    const faceNames = ['BackFace', 'FrontFace', 'TopFace', 'BottomFace', 'LeftFace', 'RightFace'];
 
-    faces.forEach(face => {
-        const uvFace = blockUVs[face];
+    faceNames.forEach(face => {
+        const uvFace = faces[face];
         uvFace.forEach(uvPoint => {
             uvArray[offset++] = uvPoint.x;
             uvArray[offset++] = uvPoint.y;
@@ -914,6 +917,8 @@ function addBlockInstance(x, y, z, blockType) {
 
     console.log(`Block at ${x}, ${y}, ${z} added successfully.`);
 }
+
+
 
 let selectedNormal = null;
 

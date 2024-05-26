@@ -203,16 +203,25 @@ public class GameHub : Hub
                             int blockY = (int)y + dy;
                             int blockZ = (int)z + dz;
                             byte currentBlockType = await chunkService.GetBlockType(blockX, blockY, blockZ);
-                            //for now, just grab them all and process them on the client.
-                            //We could ignore blockType = 0, but we cannot ignore the one we deleted.
-                            //That block needs to go to all clients.
+                             
+                            if(currentBlockType == 0)
+                            {//if it's an air block but not the one we are deleting.
+                                //we need to send the deleted block back to the client
+                                if (blockX != (int)x || blockY != (int)y || blockZ != (int)z)
+                                    continue;
+                            }
+
+                            Vector2 chunkCoords = VoxelData.CalculateChunkPosition(x, z);
+                            string chunkId = Chunk.GetChunkIdByCoords((int)chunkCoords.X, (int)chunkCoords.Y);
+
                             blocksToUpdate.Add(new BlockUpdate
                             {
                                 X = blockX,
                                 Y = blockY,
                                 Z = blockZ,
-                                BlockType = currentBlockType
-                            });
+                                BlockType = currentBlockType,
+                                ChunkId = chunkId
+                        }); ;
                         }
                     }
                 }

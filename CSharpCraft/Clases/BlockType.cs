@@ -86,5 +86,6 @@ namespace CSharpCraft.Clases
         public int Y { get; set; }
         public int Z { get; set; }
         public byte BlockType { get; set; }
+        public string ChunkId { get; set; }
     }
 }

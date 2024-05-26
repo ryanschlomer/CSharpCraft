@@ -3,6 +3,7 @@ using System;
 
 namespace CSharpCraft.Clases
 {
+    //not sure I use this class
     public class World
     {
         public Dictionary<Vector3, Chunk> chunks = new Dictionary<Vector3, Chunk>();
