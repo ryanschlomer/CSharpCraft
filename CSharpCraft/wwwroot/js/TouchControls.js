@@ -1,17 +1,26 @@
 
+//These touch controls are not 100% perfect.
+//There might be code out there that could help with this.
+
+
+
+
 // Function to check if the touch coordinates are within the controls area
-function isWithinControlsArea(touchX, touchY) {
+//This checks to see if the point is within the element
+function isWithinControlsArea(touchX, touchY, elementId) {
     // Get the bounding rectangle of the controls area
-    const controlsArea = document.getElementById('controls'); // Assuming 'controls' is the ID of your controls area
+    const controlsArea = document.getElementById(elementId); // Assuming 'controls' is the ID of your controls area
     const controlsRect = controlsArea.getBoundingClientRect();
 
+    console.log("controlsArea: ", controlsArea);
+    console.log("controlsRect: ", controlsRect);
     // Check if the touch coordinates are within the controls area rectangle
     const isWithin =
         touchX >= controlsRect.left &&
         touchX <= controlsRect.right &&
         touchY >= controlsRect.top &&
         touchY <= controlsRect.bottom;
-    //console.log("isWithin" + isWithin);
+    console.log("isWithin: " + isWithin);
     return isWithin;
 }
 
@@ -36,7 +45,7 @@ function addTouchListeners() {
             // Determine the initial touch target
 
             // Check if the initial touch target is within the controls area
-            if (isWithinControlsArea(touch.clientX, touch.clientY)) {
+            if (isWithinControlsArea(touch.clientX, touch.clientY, 'controls')) {
 
                 touchStartedInMovingControls = true;
                 controlsTouchTarget = touch;
@@ -45,9 +54,33 @@ function addTouchListeners() {
                 // Break the loop since we found the touch within the controls area
                 continue;
             }
+            else if (isWithinControlsArea(touch.clientX, touch.clientY, 'jumpButtonContainer')) {
+
+                //touchStartedInMovingControls = true;
+                //controlsTouchTarget = touch;
+                // Update key states based on the initial touch target
+                updateKeyStates(document.elementFromPoint(touch.clientX, touch.clientY));
+                // Break the loop since we found the touch within the controls area
+                continue;
+            }
+            else if (isWithinControlsArea(touch.clientX, touch.clientY, 'quickSelectBar')) {
+
+                //ignore images to get the elementFromPoint
+                const images = document.querySelectorAll('img');
+                images.forEach(img => img.classList.add('ignore-pointer-events'));
+
+                // Update key states based on the initial touch target
+                updateKeyStates(document.elementFromPoint(touch.clientX, touch.clientY));
+                continue;
+            }
             else {
                 // Store touch point for camera rotation
                 cameraStartTouch = touch;
+                updateKeyStates(document.elementFromPoint(touch.clientX, touch.clientY));
+
+                //in here, how can we tell if it's a "touch" or a "touch and hold for camera rotation"?
+                updateRaycaster(touch.clientX, touch.clientY);
+                updateKeyStates(document.elementFromPoint(touch.clientX, touch.clientY));
             }
         }
 
@@ -68,7 +101,7 @@ function addTouchListeners() {
             // Check if the touch is within the controls area
             if (controlsTouchTarget) { //Do we have an arrow controlsTouchTarget?
                 if (touch.identifier === controlsTouchTarget.identifier) { //Is this touch point the arrow controls touch target?
-                    if (isWithinControlsArea(touch.clientX, touch.clientY)) { //Are we still inside the arrow controls?
+                    if (isWithinControlsArea(touch.clientX, touch.clientY, 'controls')) { //Are we still inside the arrow controls?
                         // Update key states for moving controls
                         updateKeyStates(document.elementFromPoint(touch.clientX, touch.clientY));
                     }
@@ -130,7 +163,7 @@ function addTouchListeners() {
         e.preventDefault();
         for (let i = 0; i < e.changedTouches.length; i++) {
             const touch = e.changedTouches[i];
-            if (touch.identifier === controlsTouchTarget.identifier) {
+            if (controlsTouchTarget && touch.identifier === controlsTouchTarget.identifier) {
                 controlsTouchTarget = null;
                 touchStartedInMovingControls = false;
 
@@ -139,7 +172,7 @@ function addTouchListeners() {
                 keyStates['ArrowDown'] = false;
                 keyStates['ArrowLeft'] = false;
                 keyStates['ArrowRight'] = false;
-            } else if (touch.identifier === cameraStartTouch.identifier) {
+            } else if (cameraStartTouch && touch.identifier === cameraStartTouch.identifier) {
                 cameraStartTouch = null;
             }
         }
@@ -154,6 +187,28 @@ function updateKeyStates(targetElement) {
     keyStates['ArrowDown'] = targetElement.id === 'downButton';
     keyStates['ArrowLeft'] = targetElement.id === 'leftButton';
     keyStates['ArrowRight'] = targetElement.id === 'rightButton';
+
+    console.log(targetElement);
+    if (targetElement.id === 'jumpButton') {
+        keyStates['Space'] = true;
+        //Need to set space to false 
+        space = false;
+    }
+    if (targetElement.id.includes("quick-select-slot")) {
+
+        if (targetElement.id.startsWith("quick-select-slot")) {
+            const slotId = targetElement.id;
+            const digit = slotId.replace('quick-select-slot', '');
+            const slotIndex = parseInt(digit, 10) - 1; // Subtract 1 for zero-based index
+            
+            if (digit === '0') {
+                //Open Inventory eventually
+
+            } else {
+                selectSlot(slotIndex);
+            }
+        }
+    }
 }
 
 

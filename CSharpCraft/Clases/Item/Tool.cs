@@ -5,8 +5,8 @@
         public int Damage { get; set; }
         public float Speed { get; set; }
 
-        protected Tool(string name, int durability, string modelPath, int damage, float speed)
-            : base(name, "Tool", durability, modelPath)
+        protected Tool(string name, int durability, string modelPath, string textureAtlas, int textureAtlasPosition, int damage, float speed)
+            : base(name, "Tool", durability, modelPath, textureAtlas, textureAtlasPosition, -1)
         {
             Damage = damage;
             Speed = speed;

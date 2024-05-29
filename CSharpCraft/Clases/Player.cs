@@ -6,6 +6,7 @@ using static System.Runtime.CompilerServices.RuntimeHelpers;
 using System.Security.Cryptography.Xml;
 using Microsoft.AspNetCore.SignalR;
 using CSharpCraft.Clases.Item;
+using CSharpCraft.Classes;
 
 namespace CSharpCraft.Clases
 {
@@ -32,6 +33,7 @@ namespace CSharpCraft.Clases
     public class Player
     {
         public ChunkManager ChunkManager { get; set; }
+        public PlayerHotbar Hotbar { get; set; } = new PlayerHotbar();
 
         public string ConnectionId { get; set; }
         public Vector3 Position { get; set; }
@@ -55,7 +57,7 @@ namespace CSharpCraft.Clases
         public float Speed { get; } = 3f;
         public float MaxSpeed { get; } = 6f;
         public bool AutoJumping { get; set; } = false;
-        public Item.Item CurrentItem { get; set; }
+        //public Item.Item CurrentItem { get; set; }
 
         public Position CameraPosition { 
             get {
@@ -69,62 +71,56 @@ namespace CSharpCraft.Clases
             Direction = new Vector3(0, 0, -1); // Initial direction
             Velocity = new Vector3(0, 0, 0); // Initial velocity
             EyeHeight = Height - 0.2f; // Eye height from the ground
+
+            SetPlayerHotbar();
             //UpdateBoundingBox();
         }
 
-        // Update the player's bounding box based on the current position
-        //private void UpdateBoundingBox()
+        public void SetPlayerHotbar()
+        {
+            //set the pickax image as a grass block until e have an image
+            Hotbar.SetItem(0, new Pickaxe("Pickaxe", 100, "/Graphics/Models/pickaxe.glb", "/Graphics/Blocks2.png", 1, 10, 10));
+            Hotbar.SetItem(1, new Block(VoxelData.BlockTypes[1].BlockName, 1, "", VoxelData.BlockTypes[1].TextureAtlas, VoxelData.BlockTypes[1].TopFaceTexture, 1, 10, 1));
+            Hotbar.SetItem(2, new Block(VoxelData.BlockTypes[2].BlockName, 1, "", VoxelData.BlockTypes[2].TextureAtlas, VoxelData.BlockTypes[2].TopFaceTexture, 1, 10, 2));
+            Hotbar.SetItem(3, new Block(VoxelData.BlockTypes[3].BlockName, 1, "", VoxelData.BlockTypes[3].TextureAtlas, VoxelData.BlockTypes[3].TopFaceTexture, 1, 10, 3));
+            Hotbar.SetItem(4, new Block(VoxelData.BlockTypes[4].BlockName, 1, "", VoxelData.BlockTypes[4].TextureAtlas, VoxelData.BlockTypes[4].TopFaceTexture, 1, 10, 4));
+            Hotbar.SetItem(5, new Block(VoxelData.BlockTypes[5].BlockName, 1, "", VoxelData.BlockTypes[5].TextureAtlas, VoxelData.BlockTypes[5].TopFaceTexture, 1, 10, 5));
+            Hotbar.SetItem(6, new Block(VoxelData.BlockTypes[6].BlockName, 1, "", VoxelData.BlockTypes[6].TextureAtlas, VoxelData.BlockTypes[6].TopFaceTexture, 1, 10, 6));
+            Hotbar.SetItem(7, new Block(VoxelData.BlockTypes[7].BlockName, 1, "", VoxelData.BlockTypes[7].TextureAtlas, VoxelData.BlockTypes[7].TopFaceTexture, 1, 10, 7));
+            Hotbar.SetItem(8, new Block(VoxelData.BlockTypes[8].BlockName, 1, "", VoxelData.BlockTypes[8].TextureAtlas, VoxelData.BlockTypes[8].TopFaceTexture, 1, 10, 8));
+
+            Hotbar.SelectItem(0);
+
+        }
+        
+
+        //// Calculate the new movement vector based on input
+        //private Vector3 CalculateMovement(float deltaTime, Vector3 movementDelta)
         //{
-        //    Vector3 min = new Vector3(Position.X - Radius, Position.Y, Position.Z - Radius);
-        //    Vector3 max = new Vector3(Position.X + Radius, Position.Y + Height, Position.Z + Radius);
-        //    BoundingBox = new BoundingBox(min, max);
+        //    Vector3 forward = Vector3.Normalize(new Vector3(Direction.X, 0, Direction.Z));
+        //    Vector3 right = Vector3.Normalize(Vector3.Cross(Direction, Vector3.UnitY));
+
+        //    Vector3 forwardMovement = forward * movementDelta.Z;
+        //    Vector3 rightMovement = right * movementDelta.X;
+        //    Vector3 verticalMovement = Vector3.UnitY * movementDelta.Y;
+
+        //    return (forwardMovement + rightMovement + verticalMovement) * Speed;
         //}
 
-        // Process movement input and check for collisions
-        //public void UpdatePosition(float deltaTime, Vector3 movementDelta, Vector3 lookDirection)
+        //// Check for collisions and return a response vector to adjust position if needed
+        //private Vector3 CheckForCollision(float deltaTime, Vector3 potentialPosition)
         //{
-        //    if(movementDelta.Length() > 0)
-        //    {
-        //        int asdfadsf = 0;
-        //    }
-        //    Direction = lookDirection;
-        //    Vector3 proposedMovement = CalculateMovement(deltaTime, movementDelta);
-        //    Vector3 potentialPosition = Position + proposedMovement;
-
-        //    // Perform collision detection
-        //    Vector3 collisionResponse = CheckForCollision(deltaTime, potentialPosition);
-        //    Position += proposedMovement + collisionResponse;
-
-        //    UpdateBoundingBox();
+        //    // Simulated collision detection logic
+        //    // Assume collision detected and return a response vector
+        //    // This should be replaced with actual game world collision checks
+        //    Vector3 response = Vector3.Zero; // No collision assumed here for simplicity
+        //                                     // If there's a collision, modify `response` to adjust the player's position appropriately
+        //    return response;
         //}
 
-        // Calculate the new movement vector based on input
-        private Vector3 CalculateMovement(float deltaTime, Vector3 movementDelta)
-        {
-            Vector3 forward = Vector3.Normalize(new Vector3(Direction.X, 0, Direction.Z));
-            Vector3 right = Vector3.Normalize(Vector3.Cross(Direction, Vector3.UnitY));
-
-            Vector3 forwardMovement = forward * movementDelta.Z;
-            Vector3 rightMovement = right * movementDelta.X;
-            Vector3 verticalMovement = Vector3.UnitY * movementDelta.Y;
-
-            return (forwardMovement + rightMovement + verticalMovement) * Speed;
-        }
-
-        // Check for collisions and return a response vector to adjust position if needed
-        private Vector3 CheckForCollision(float deltaTime, Vector3 potentialPosition)
-        {
-            // Simulated collision detection logic
-            // Assume collision detected and return a response vector
-            // This should be replaced with actual game world collision checks
-            Vector3 response = Vector3.Zero; // No collision assumed here for simplicity
-                                             // If there's a collision, modify `response` to adjust the player's position appropriately
-            return response;
-        }
-
-        public override string ToString()
-        {
-            return $"Position: {Position}, Direction: {Direction}";
-        }
+        //public override string ToString()
+        //{
+        //    return $"Position: {Position}, Direction: {Direction}";
+        //}
     }
 }

@@ -1,4 +1,4 @@
-@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+﻿@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
 
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -64,26 +64,137 @@ a, .btn-link {
     }
 
 
-#controls button {
+img.ignore-pointer-events {
+    pointer-events: none;
+}
+
+
+#controls button,
+#jumpButton {
     background-color: #fff;
     border: none;
-    z-index: 1000; /* Ensure a high z-index */
-    font-size: 32px; /* Increased font size */
-    padding: 20px 40px; /* Larger padding for a bigger touch area */
+    z-index: 1000;
+    font-size: 32px;
+    width: 80px;
+    height: 80px;
     border-radius: 5px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    touch-action: manipulation; /* Optimizes for touch by disabling double-tap to zoom */
+    touch-action: manipulation;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+    #controls button::after,
+    #jumpButton::after {
+        position: absolute;
+        font-size: 32px;
+    }
+
+#upButton::after {
+    content: '⬆️';
+    top: 10px;
+}
+
+#downButton::after {
+    content: '⬇️';
+    top: 10px;
+}
+
+#leftButton::after {
+    content: '⬅️';
+    top: 10px;
+}
+
+#rightButton::after {
+    content: '➡️';
+    top: 10px;
+}
+
+#sneakButton::before,
+#jumpButton::before {
+    content: '';
+    position: absolute;
+    width: 60%;
+    height: 4px;
+    background-color: black;
+    bottom: 20px; /* Position the line consistently for both buttons */
+}
+
+#sneakButton::after {
+    content: '⬇️';
+    top: 10px;
+}
+
+#jumpButton::after {
+    content: '⬆️';
+    top: 10px;
 }
 
 #controls {
     position: fixed;
-    bottom: 10%;
-    left: 10px; /* Adjusted to be on the left side of the screen */
-    z-index: 10000; /* Ensure a high z-index */
+    bottom: 20%;
+    left: 50px;
+    z-index: 1000;
     display: grid;
-    grid-template-columns: repeat(3, auto); /* Three columns */
-    grid-gap: 10px; /* Gap between grid items */
-    align-items: center; /* Center items vertically */
-    justify-items: center; /* Center items horizontally */
+    grid-template-columns: repeat(3, auto);
+    grid-gap: 10px;
+    align-items: center;
+    justify-items: center;
 }
 
+#jumpButtonContainer {
+    position: fixed;
+    bottom: 20%; /* Align with controls */
+    right: 50px;
+    z-index: 1000;
+    display: flex;
+    align-items: center; /* Align items vertically */
+}
+
+
+
+#fullscreenContainer {
+    position: relative; /* Ensure the container is a positioned element */
+    width: 100%;
+    height: 100%;
+}
+
+
+
+
+#quickSelectBar {
+    position: absolute; /* Use absolute positioning */
+    bottom: 10px; /* Adjust based on your design */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    border-radius: 10px;
+    display: flex;
+    /*justify-content: center;
+    align-items: center;*/
+    z-index: 1000;
+}
+
+
+.quick-select-slot {
+    margin: 5px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 2px solid transparent; /* Change default border color */
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    overflow: hidden; /* Ensure the image doesn't overflow the slot */
+    position: relative;
+    cursor: pointer; /* Change cursor to pointer on hover */
+}
+
+    .quick-select-slot.selected {
+        border: 2px solid white; /* White border for selected slot */
+    }

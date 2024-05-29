@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Text.Json;
 using System.Threading.Tasks;
 using CSharpCraft.Clases.Item;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 
 public class GameHub : Hub
 {
@@ -152,7 +153,7 @@ public class GameHub : Hub
         bool playerInWay = false;
         if (code != "REMOVE")
         {
-            byte blockType = 1; //get this based on the code sent
+            byte blockType = byte.Parse(code); //get this based on the code sent
 
             BoundingBox block = new BoundingBox(new Vector3(x, y, z), new Vector3(x + 1, y + 1, z + 1));
             //Need to see if any players are in the block area
@@ -248,25 +249,30 @@ public class GameHub : Hub
         var player = _playerManager.GetPlayer(Context.ConnectionId);
         if (player != null)
         {
-            if(player.CurrentItem == null)
-            {
-                //add a pick for now
-                player.CurrentItem = new Pickaxe("Iron Pickaxe", 100, "./Graphics/Models/pickaxe.glb", 100, 1.0f);
-            }
-            return player.CurrentItem;
+            return player.Hotbar.SelectedItem;
         }
 
         return null;
     }
 
-    public async Task<Item> SetCurrentItem(int itemId)
+    public async Task<Item> SetCurrentItemByKey(int key)
     {
         var player = _playerManager.GetPlayer(Context.ConnectionId);
         if (player != null)
         {
-            //add a pick for now
-            player.CurrentItem = new Pickaxe("Iron Pickaxe", 100, "./Graphics/Models/pickaxe.glb", 100, 1.0f);
-            return player.CurrentItem;
+            player.Hotbar.SelectItemByKey(key);
+            return player.Hotbar.SelectedItem;
+        }
+
+        return null;
+    }
+
+    public async Task<List<Item>> GetPlayerHotbarItems()
+    {
+        var player = _playerManager.GetPlayer(Context.ConnectionId);
+        if (player != null)
+        {
+            return player.Hotbar.GetAllItems();
         }
 
         return null;

@@ -43,10 +43,14 @@ namespace CSharpCraft.Clases
             float distanceXZ = (float)Math.Sqrt(dx * dx + dz * dz);
 
             // Check if the closest point is within the cylinder's radius
-            bool horizontalOverlap = distanceXZ <= Radius;
+            //bool horizontalOverlap = distanceXZ <= Radius;
+            // Check vertical overlap
+            //bool verticalOverlap = (Bottom.Y <= box.Max.Y) && (Bottom.Y + Height >= box.Min.Y);
+
+            bool horizontalOverlap = distanceXZ < Radius;
 
             // Check vertical overlap
-            bool verticalOverlap = (Bottom.Y <= box.Max.Y) && (Bottom.Y + Height >= box.Min.Y);
+            bool verticalOverlap = (Bottom.Y < box.Max.Y) && (Bottom.Y + Height > box.Min.Y);
 
             return horizontalOverlap && verticalOverlap;
         }

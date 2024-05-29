@@ -48,6 +48,7 @@ namespace CSharpCraft.Clases
                 1, new BlockType
                 {
                     IsSolid = true, // Grass block
+                    BlockName = "Grass",
                     TextureAtlas = "/Graphics/Blocks.png",
                     BackFaceTexture = 2,
                     FrontFaceTexture = 2,

@@ -97,27 +97,47 @@ function updateCameraPositionDisplay() {
 // Function to handle block placement and removal
 function handleBlockInteraction(event) {
     const { code } = event;
-    console.log("handleBlockInteraction");
+    console.log("code: ", code);
+
     // Define block placement keys
-    const blockPlacementKeys = [
+    const hotbarKeys = [
         'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5',
         'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0'
     ];
 
     // Check if the key is for block placement
-    if (blockPlacementKeys.includes(code)) {
-        placeBlock(code); // Function to place a block
-    }
+    if (hotbarKeys.includes(code)) {
+        // Remove the 'Digit' prefix and convert to integer
+        const digit = code.replace('Digit', '');
+        const slotIndex = parseInt(digit, 10) - 1; // Subtract 1 for zero-based index
 
+        // Adjust 'Digit0' to select the last slot (usually slot 10)
+        if (digit === '0') {
+            //Open Inventory eventually
+
+        }
+
+        selectSlot(slotIndex);
+    }
+    //Check is key is for place block.
+    else if (code === 'KeyP') { //not sure what the key should be
+        if (PlayerSelectedItem.type === "Block") { //make sure they have a block selected
+            placeBlock(code);
+        }
+    }
     // Check if the key is the Delete key for block removal
     if (code === 'Delete') {
-        removeBlock(); // Function to remove a block
+        if (PlayerSelectedItem.type === "Tool") { //make sure they have a tool selected.
+            removeBlock(); // Function to remove a block
+        }
     }
 }
 
 // Function to place a block
 function placeBlock(code) {
     // if selectedCoords is not null and selectedNormal is not null
+
+
     if (selectedCoords && selectedNormal) { // verify block is selected
         // Calculate new block position
         var x = selectedCoords.x + selectedNormal.x - 0.5;
@@ -126,10 +146,12 @@ function placeBlock(code) {
 
         console.log("Placing block at", x, y, z);
 
+
         // Invoke server method to place block
-        connection.invoke("HandleBlockInteraction", x, y, z, code)
+        connection.invoke("HandleBlockInteraction", x, y, z, PlayerSelectedItem.blockId.toString())
             .catch(err => console.error(err.toString()));
     }
+
 }
 
 

@@ -2,8 +2,8 @@
 {
     public class Pickaxe : Tool
     {
-        public Pickaxe(string name, int durability, string modelPath, int damage, float speed)
-            : base(name, durability, modelPath, damage, speed)
+        public Pickaxe(string name, int durability, string modelPath, string textureAtlas, int textureAtlasPosition, int damage, float speed)
+            : base(name, durability, modelPath, textureAtlas, textureAtlasPosition, damage, speed)
         {
         }
 

@@ -84,7 +84,8 @@ function statsToString() {
 }
 
 const loader = new THREE.GLTFLoader();
-var pickaxeMesh;
+
+var playerMesh = null;
 
 async function initialize3DScene(canvasId) {
     console.log("Initializing 3D scene...");
@@ -123,34 +124,15 @@ async function initialize3DScene(canvasId) {
     scene.add(camera);
     //test coad to load a model:
 
-    loader.load('/Graphics/Models/pickaxe.glb', function (gltf) {
-        console.log("Got here", loader);
-        pickaxeMesh = gltf.scene;
+    
 
-        camera.add(pickaxeMesh);
-        console.log("Pickaxe added to camera");
+    await getPlayerHotbarItems();
 
-        // Position the pickaxe in front of the camera
-        pickaxeMesh.position.set(.75, -.25, -0.5);
-        pickaxeMesh.scale.set(0.5, 0.5, 0.5);
-        pickaxeMesh.rotation.z = Math.PI / 2;
-        pickaxeMesh.rotation.y = Math.PI + .5;
-        pickaxeMesh.rotation.x = 0.2;
-
-        console.log("Pickaxe position:", pickaxeMesh.position);
-
-        pickaxeMesh.updateMatrixWorld();
-        const worldPosition = new THREE.Vector3();
-        pickaxeMesh.getWorldPosition(worldPosition);
-        console.log("Pickaxe world position:", worldPosition);
-
-        const cameraPosition = new THREE.Vector3();
-        camera.getWorldPosition(cameraPosition);
-        console.log("Camera world position:", cameraPosition);
-
-    }, undefined, function (error) {
-        console.error('An error occurred while loading the model', error);
-    });
+    //Need to get a list of players from the server in order to make this work.
+    //and the model isn't all that great.
+    //playerMesh = await LoadTool("/Graphics/Models/Sabrewulf.glb");
+    //playerMesh.position.set(0.75, -0.25, -3);
+    //camera.add(playerMesh);
 
     animate();
 
@@ -186,34 +168,6 @@ async function getUVData() {
     }
 }
 
-//// Function to fetch UV data from the server
-//function getUVData() {
-// connection.invoke("GetUVData")
-// .then(async uvData => {
-// //console.log("Received UV data:", JSON.stringify(uvData, null, 2)); // Detailed log of received data
-
-// for (const block of uvData) {
-// //console.log(`Processing block type: ${block.blockType}`);
-
-// // Load the texture atlas for the block type
-// const material = await loadTextureAtlas(block.textureAtlas);
-
-// UVs[block.blockType] = {
-// textureAtlas: block.textureAtlas,
-// blockName: block.blockName,
-// isSolid: block.isSolid,
-// faces: block.faces,
-// material: material
-// };
-
-// //console.log(`Stored UV data for block type ${block.blockType}:`, JSON.stringify(UVs[block.blockType], null, 2));
-// }
-
-// //console.log("UV data received and stored:", JSON.stringify(UVs, null, 2)); // Detailed log of stored data
-// })
-// .catch(err => console.error(err.toString()));
-//}
-
 function loadTextureNearestFilter(imagePath) {
     return new Promise((resolve, reject) => {
         new THREE.TextureLoader().load(imagePath,
@@ -228,57 +182,10 @@ function loadTextureNearestFilter(imagePath) {
     });
 }
 
-//function clearChunks(chunkIds) {
-// updateStats("Before cleanup", scene.children.length);
-
-// console.log(chunkIds);
-// if (!scene) {
-// return;
-// }
-
-// const objectsToRemove = [];
-
-// var s = "";
-// scene.traverse((object) => {
-
-// if (object.userData.isChunk && chunkIds.includes(object.name)) {
-// objectsToRemove.push(object);
-// s += object.name + ", ";
-// }
-// });
-// updateStats("Chunk To Remove:", s); // Log before removal
-
-// objectsToRemove.forEach(object => {
-// if (object.material) {
-// if (Array.isArray(object.material)) {
-// object.material.forEach(mat => {
-// if (mat.map) {
-// mat.map.dispose();
-// }
-// mat.dispose();
-// });
-// } else {
-// if (object.material.map) {
-// object.material.map.dispose();
-// }
-// object.material.dispose();
-// }
-// }
-
-// if (object.geometry) {
-// object.geometry.dispose();
-// }
-
-// scene.remove(object);
-// });
-
-// updateStats("After cleanup", scene.children.length);
-//}
-
 function clearChunks(chunkIds) {//this doesn't quite work
     updateStats("Before cleanup", scene.children.length);
 
-    console.log("Chunk IDs to remove:", chunkIds);
+    //console.log("Chunk IDs to remove:", chunkIds);
     if (!scene) {
         return;
     }
@@ -287,9 +194,9 @@ function clearChunks(chunkIds) {//this doesn't quite work
 
     scene.traverse((object) => {
         if (object.userData.isChunk) {
-            console.log("Checking object:", object.name);
+            //console.log("Checking object:", object.name);
             if (chunkIds.includes(object.name.split('_')[0])) { // Check only ChunkId part of the name
-                console.log("Object to remove found:", object.name);
+                //console.log("Object to remove found:", object.name);
                 objectsToRemove.push(object);
             }
         }
@@ -299,7 +206,7 @@ function clearChunks(chunkIds) {//this doesn't quite work
 
     objectsToRemove.forEach(object => {
         // Log details about the object being removed
-        console.log("Removing object:", object.name);
+        //console.log("Removing object:", object.name);
 
         if (object.material) {
             if (Array.isArray(object.material)) {
@@ -325,7 +232,7 @@ function clearChunks(chunkIds) {//this doesn't quite work
     });
 
     updateStats("After cleanup", scene.children.length);
-    console.log("Chunks removed:", objectsToRemove.map(obj => obj.name).join(", "));
+    //console.log("Chunks removed:", objectsToRemove.map(obj => obj.name).join(", "));
 }
 
 async function initializeTextureAtlas() {
@@ -346,7 +253,7 @@ async function loadTextureAtlas(path) {
                 //texture.wrapT = THREE. RepeatWrapping;
                 texture.minFilter = THREE.NearestFilter;
                 texture.magFilter = THREE.NearestFilter;
-                console.log("Texture Atlas Loaded:", texture);
+                //console.log("Texture Atlas Loaded:", texture);
                 resolve(texture);
             },
             undefined,
@@ -400,7 +307,7 @@ const chunkQueue = new ChunkQueue(); // Queue to store chunks for sequential ren
 function renderChunks(canvasId, jsonUpdatePayload) {
     const updatePayload = JSON.parse(jsonUpdatePayload); // Ensure this parsing is necessary based on how data is received
     //clearChunks(updatePayload.ChunksToRemove);
-    console.log(updatePayload);
+    //console.log(updatePayload);
     updatePayload.forEach(chunk => {
         renderNextChunk(chunk); // Adjust this if your renderNextChunk can handle direct chunk data
     });
@@ -422,7 +329,7 @@ function animate() {
 
     sendInputToServer(deltaTime);
 
-    updateRaycaster();
+    //updateRaycaster();
     lastSentTime = now;
 
     if (a > 1)
@@ -430,9 +337,7 @@ function animate() {
     if (a < -1)
         aStep = .01
     a += aStep
-    if (camera && pickaxeMesh) {
-
-    }
+   
 
     renderedObjectsCount = 0;
     renderedBlocksCount = 0;
@@ -451,6 +356,12 @@ function animate() {
     });
 
     renderer.render(scene, camera);
+
+    if (selectedItemMesh) {
+        renderer.autoClear = false; // Disable auto clear
+        renderer.clearDepth(); // Clear the depth buffer
+        renderer.render(selectedItemMesh, camera);
+    }
 
     if (frameCount % 60 === 0) {
         updateStats("Objects rendered in last frame", renderedObjectsCount);
@@ -595,7 +506,7 @@ const blockInstanceIds = {};
 
 async function renderChunk(JSONData) {
 
-    console.log("render Chunk Start");
+    //console.log("render Chunk Start");
     const chunkData = JSON.parse(JSONData);
     const { ChunkId, ChunkX, ChunkZ, Blocks } = chunkData;
     const blockMeshes = {};
@@ -606,7 +517,7 @@ async function renderChunk(JSONData) {
         if (!UVs[BlockId]) {
             //This error occurs a lot??
             console.error(`UV data for block type ${BlockId} not found.`);
-            console.log("UVs: ", UVs);
+            //console.log("UVs: ", UVs);
             continue;
         }
 
@@ -675,7 +586,7 @@ async function renderChunk(JSONData) {
     }
 
     updateStats("scene.children.length", scene.children.length);
-    console.log("Chunk ID:", ChunkId);
+    //console.log("Chunk ID:", ChunkId);
 }
 
 function initializeHighlightMeshes() {
@@ -723,7 +634,7 @@ function removeBlock() {
 
 // Function to handle block updates from the server
 connection.on("UpdateBlocks", (blocksToUpdate) => {
-    console.log("Blocks update received:", blocksToUpdate);
+    //console.log("Blocks update received:", blocksToUpdate);
 
     // Update the blocks in the local scene
     blocksToUpdate.forEach(block => {
@@ -736,7 +647,7 @@ connection.on("UpdateBlocks", (blocksToUpdate) => {
 
             //need to figure out why the new block isn't visible
             //and why the screen flashes.
-            console.log("x, y, z, blockType, chunkId:", x, y, z, blockType, chunkId);
+            //console.log("x, y, z, blockType, chunkId:", x, y, z, blockType, chunkId);
             addBlockInstance(x, y, z, blockType, chunkId);
         }
     });
@@ -859,7 +770,7 @@ function addBlockInstance(x, y, z, blockId, chunkId) {
     if (blockInstanceIds[blockKey]) {
         return;
     }
-    console.log("Enter Add Block Instance");
+    //console.log("Enter Add Block Instance");
 
     let instancedMesh = null;
     for (let child of scene.children) {
@@ -870,7 +781,7 @@ function addBlockInstance(x, y, z, blockId, chunkId) {
     }
 
     if (!instancedMesh) {
-        console.log("Instanced Mesh does not exist.");
+        //console.log("Instanced Mesh does not exist.");
 
         const maxCount = window.voxelData.ChunkWidth * window.voxelData.ChunkWidth * window.voxelData.ChunkHeight;
         const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
@@ -884,7 +795,7 @@ function addBlockInstance(x, y, z, blockId, chunkId) {
         instancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         instancedMesh.count = 0;
         scene.add(instancedMesh);
-        console.log("Finished adding new mesh.");
+        //console.log("Finished adding new mesh.");
     }
 
     const index = instancedMesh.count++;
@@ -915,14 +826,122 @@ function addBlockInstance(x, y, z, blockId, chunkId) {
     instancedMesh.instanceMatrix.needsUpdate = true;
     instancedMesh.geometry.attributes.uv.needsUpdate = true;
 
-    console.log(`Block at ${x}, ${y}, ${z} added successfully.`);
+    //console.log(`Block at ${x}, ${y}, ${z} added successfully.`);
 }
 
 
 
 let selectedNormal = null;
 
-function updateRaycaster(event) {
+//function updateRaycaster(event) {
+//    if (!camera) {
+//        console.error("Camera is not initialized");
+//        return;
+//    }
+
+//    // Ensure the camera's matrices are up-to-date
+//    camera.updateMatrixWorld(true);
+
+//    if (!scene) {
+//        console.error("Scene is not initialized");
+//        return;
+//    }
+
+//    // Ensure the raycaster is initialized
+//    if (!raycaster) {
+//        console.error("Raycaster is not initialized");
+//        return;
+//    }
+
+//    try {
+//        raycaster.setFromCamera(mouse, camera);
+
+//        // Perform the intersection
+//        const intersects = raycaster.intersectObjects(scene.children, true);
+
+//        if (intersects.length > 0) {
+//            // Find the closest intersected object
+//            let closestIntersection = null;
+//            let intersection = null;
+
+//            // Iterate through the intersections to find a valid one
+//            for (let i = 0; i < intersects.length; i++) {
+//                intersection = intersects[i];
+
+//                // Skip highlight meshes
+//                if (intersection.object === highlightMeshPlace || intersection.object === highlightMeshRemove) {
+//                    //console.log("Ignoring highlight mesh:", intersection.object);
+//                    continue;
+//                }
+
+//                // Only get the intersection if it's an InstancedMesh
+//                if (intersection.object instanceof THREE.InstancedMesh) {
+//                    closestIntersection = intersection;
+//                    //console.log("Closest intersection:", closestIntersection);
+//                    break;
+//                }
+//            }
+
+//            intersection = closestIntersection;
+
+//            // Check if the intersected object is an instance of THREE. InstancedMesh
+//            if (intersection.object instanceof THREE.InstancedMesh) {
+//                // Get the transformation matrix of the intersected instance
+//                const blockMatrix = new THREE.Matrix4();
+//                intersection.object.getMatrixAt(intersection.instanceId, blockMatrix);
+
+//                // Extract the position from the transformation matrix
+//                const blockPosition = new THREE.Vector3().setFromMatrixPosition(blockMatrix);
+//                //console.log("Block position:", blockPosition);
+
+//                // Extract the chunk ID from the intersected object
+//                const chunkId = intersection.object.name;
+//                //console.log("Chunk ID:", chunkId);
+
+//                // Calculate the global position by adding the chunk's position
+//                const chunkPosition = getChunkPositionFromId(chunkId);
+//                //console.log("Chunk position:", chunkPosition);
+
+//                // Adjust block position to the block grid
+//                const blockX = Math.floor(blockPosition.x);
+//                const blockY = Math.floor(blockPosition.y);
+//                const blockZ = Math.floor(blockPosition.z);
+
+//                const centerX = blockX + 0.5;
+//                const centerY = blockY + 0.5;
+//                const centerZ = blockZ + 0.5;
+
+//                // Log the calculated block position
+//                //console.log("Calculated block center:", { x: centerX, y: centerY, z: centerZ });
+
+//                // Center the highlight mesh over the block
+//                highlightMeshPlace.position.set(centerX, centerY, centerZ);
+//                highlightMeshPlace.visible = true;
+//                highlightMeshRemove.visible = false;
+//                selectedCoords = new THREE.Vector3(centerX, centerY, centerZ);
+
+//                // Store the normal of the intersected face
+//                selectedNormal = intersection.face.normal.clone();
+
+//                //console.log("intersection.object that works: ", intersection.object);
+//            } else {
+//                // Handle the case where the intersected object is not an instanced mesh
+//                //console.error("Intersected object is not an instance of THREE. InstancedMesh");
+//                //console.log("intersection.object: ", intersection.object);
+//            }
+//        } else {
+//            highlightMeshPlace.visible = false;
+//            highlightMeshRemove.visible = false;
+//            selectedCoords = null;
+//            selectedNormal = null;
+//        }
+//    } catch (error) {
+//        // This error occurs a lot
+//        //console.error("Error updating raycaster:", error);
+//    }
+//}
+
+function updateRaycaster(x, y) {
     if (!camera) {
         console.error("Camera is not initialized");
         return;
@@ -943,6 +962,10 @@ function updateRaycaster(event) {
     }
 
     try {
+        // Convert screen coordinates to normalized device coordinates
+        mouse.x = (x / window.innerWidth) * 2 - 1;
+        mouse.y = -(y / window.innerHeight) * 2 + 1;
+
         raycaster.setFromCamera(mouse, camera);
 
         // Perform the intersection
