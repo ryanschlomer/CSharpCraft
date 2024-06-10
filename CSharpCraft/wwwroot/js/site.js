@@ -42,6 +42,11 @@ function setVoxelData(chunkWidth, chunkHeight) {
     };
     // You can now use window.voxelData.ChunkWidth and window.voxelData.ChunkHeight as needed
 }
+const listener = new THREE.AudioListener();
+var miningSound = null;
+var walkingSound = null;
+const audioLoader = new THREE.AudioLoader();
+var walkingSoundEnded = false;
 
 var scene, camera, renderer;
 var controls; // Controls initialized later
@@ -95,12 +100,29 @@ async function initialize3DScene(canvasId) {
     blockGeometry.setAttribute('instanceUV', uvAttribute);
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    console.log("Camera initialized:", camera);
+    console.log("Camera initialized:", camera, window.innerWidth, window.innerHeight);
 
     renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     controls = new THREE.PointerLockControls(camera, canvas);
     document.body.addEventListener('click', () => controls.lock());
+
+    camera.add(listener);
+    miningSound = new THREE.Audio(listener);
+    walkingSound = new THREE.Audio(listener);
+    audioLoader.load('/Sounds/mining.mp3', function (buffer) {
+        miningSound.setBuffer(buffer);
+        miningSound.setLoop(false);
+        miningSound.setVolume(0.5);
+    });
+
+    audioLoader.load('/Sounds/walking.mp3', function (buffer) {
+        walkingSound.setBuffer(buffer);
+        walkingSound.setLoop(true);
+        walkingSound.setVolume(0.5);
+    });
+ 
+
 
     //Get UV Data
     await getUVData();
@@ -940,7 +962,6 @@ let selectedNormal = null;
 //        //console.error("Error updating raycaster:", error);
 //    }
 //}
-
 function updateRaycaster(x, y) {
     if (!camera) {
         console.error("Camera is not initialized");
@@ -949,6 +970,7 @@ function updateRaycaster(x, y) {
 
     // Ensure the camera's matrices are up-to-date
     camera.updateMatrixWorld(true);
+    camera.updateProjectionMatrix();  // Ensure the projection matrix is up-to-date
 
     if (!scene) {
         console.error("Scene is not initialized");
@@ -967,6 +989,8 @@ function updateRaycaster(x, y) {
         mouse.y = -(y / window.innerHeight) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
+        raycaster.near = camera.near;
+        raycaster.far = camera.far;
 
         // Perform the intersection
         const intersects = raycaster.intersectObjects(scene.children, true);
@@ -982,37 +1006,32 @@ function updateRaycaster(x, y) {
 
                 // Skip highlight meshes
                 if (intersection.object === highlightMeshPlace || intersection.object === highlightMeshRemove) {
-                    //console.log("Ignoring highlight mesh:", intersection.object);
                     continue;
                 }
 
                 // Only get the intersection if it's an InstancedMesh
                 if (intersection.object instanceof THREE.InstancedMesh) {
                     closestIntersection = intersection;
-                    //console.log("Closest intersection:", closestIntersection);
                     break;
                 }
             }
 
             intersection = closestIntersection;
 
-            // Check if the intersected object is an instance of THREE. InstancedMesh
-            if (intersection.object instanceof THREE.InstancedMesh) {
+            // Check if the intersected object is an instance of THREE.InstancedMesh
+            if (intersection && intersection.object instanceof THREE.InstancedMesh) {
                 // Get the transformation matrix of the intersected instance
                 const blockMatrix = new THREE.Matrix4();
                 intersection.object.getMatrixAt(intersection.instanceId, blockMatrix);
 
                 // Extract the position from the transformation matrix
                 const blockPosition = new THREE.Vector3().setFromMatrixPosition(blockMatrix);
-                //console.log("Block position:", blockPosition);
 
                 // Extract the chunk ID from the intersected object
                 const chunkId = intersection.object.name;
-                //console.log("Chunk ID:", chunkId);
 
                 // Calculate the global position by adding the chunk's position
                 const chunkPosition = getChunkPositionFromId(chunkId);
-                //console.log("Chunk position:", chunkPosition);
 
                 // Adjust block position to the block grid
                 const blockX = Math.floor(blockPosition.x);
@@ -1023,9 +1042,6 @@ function updateRaycaster(x, y) {
                 const centerY = blockY + 0.5;
                 const centerZ = blockZ + 0.5;
 
-                // Log the calculated block position
-                //console.log("Calculated block center:", { x: centerX, y: centerY, z: centerZ });
-
                 // Center the highlight mesh over the block
                 highlightMeshPlace.position.set(centerX, centerY, centerZ);
                 highlightMeshPlace.visible = true;
@@ -1034,12 +1050,12 @@ function updateRaycaster(x, y) {
 
                 // Store the normal of the intersected face
                 selectedNormal = intersection.face.normal.clone();
-
-                //console.log("intersection.object that works: ", intersection.object);
             } else {
                 // Handle the case where the intersected object is not an instanced mesh
-                //console.error("Intersected object is not an instance of THREE. InstancedMesh");
-                //console.log("intersection.object: ", intersection.object);
+                highlightMeshPlace.visible = false;
+                highlightMeshRemove.visible = false;
+                selectedCoords = null;
+                selectedNormal = null;
             }
         } else {
             highlightMeshPlace.visible = false;
@@ -1048,7 +1064,7 @@ function updateRaycaster(x, y) {
             selectedNormal = null;
         }
     } catch (error) {
-        // This error occurs a lot
-        //console.error("Error updating raycaster:", error);
+        // Handle any errors
+        console.error("Error updating raycaster:", error);
     }
 }

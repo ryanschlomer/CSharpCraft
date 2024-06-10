@@ -3,22 +3,7 @@
 var space = false;
 
 async function sendInputToServer(deltaTime) {
-    // Calculate movement deltas based on key states
-    let xDelta = 0, yDelta = 0, zDelta = 0;
-    if (keyStates['ArrowUp']) zDelta += 1;
-    if (keyStates['ArrowDown']) zDelta -= 1;
-    if (keyStates['ArrowLeft']) xDelta -= 1;
-    if (keyStates['ArrowRight']) xDelta += 1;
-
-    if (!space) {
-        if (keyStates['Space']) {
-            yDelta += 1; // Example for jump
-            space = true;
-        }
-    }
-    
-    //might need to send in the keys in order to do other things like fly.
-
+   
 
     // Assume camera.getWorldDirection provides the forward direction vector
     const direction = new THREE.Vector3();
@@ -28,20 +13,31 @@ async function sendInputToServer(deltaTime) {
 
     //console.log("Got here: ",deltaTime, xDelta, yDelta, zDelta, direction);
     // Send the input to the server
-    await connection.invoke("UpdatePlayer", deltaTime, xDelta, yDelta, zDelta, direction.x, direction.y, direction.z)
+//    await connection.invoke("UpdatePlayer", deltaTime, xDelta, yDelta, zDelta, direction.x, direction.y, direction.z)
+
+    const playerUpdateData = {
+        DeltaTime: deltaTime,
+        DirectionX: direction.x,
+        DirectionY: direction.y,
+        DirectionZ: direction.z,
+        KeyStates: keyStates
+    };
+
+
+    await connection.invoke("UpdatePlayer", playerUpdateData)
         .then(position => {
             if (position) {
                 camera.position.set(position.x, position.y, position.z);
-                //camera.lookAt(new THREE.Vector3(0, 0, 0)); // Or any other point you want the camera to focus on
+                camera.updateProjectionMatrix();
             }
         })
         .catch(err => console.error("Error updating player: ", err.toString()));
 }
 
 
-connection.on("UpdatePosition", (newPosition) => {
-    camera.position.set(newPosition.x, newPosition.y, newPosition.z);
-});
+//connection.on("UpdatePosition", (newPosition) => {
+//    camera.position.set(newPosition.x, newPosition.y, newPosition.z);
+//});
 
 
 
@@ -122,7 +118,9 @@ function handleBlockInteraction(event) {
     //Check is key is for place block.
     else if (code === 'KeyP') { //not sure what the key should be
         if (PlayerSelectedItem.type === "Block") { //make sure they have a block selected
-            placeBlock(code);
+            //placeBlock(code);
+            //TODO: maybe fix this in the future to allow placing blocks with keys
+            //Or, just go all to touch screen.
         }
     }
     // Check if the key is the Delete key for block removal
@@ -134,8 +132,13 @@ function handleBlockInteraction(event) {
 }
 
 // Function to place a block
-function placeBlock(code) {
+function placeBlock(clientX, clientY) {
     // if selectedCoords is not null and selectedNormal is not null
+    updateRaycaster(clientX, clientY);
+
+    console.log("clientX, clientY", clientX, clientY);
+
+    console.log("selectedCoords && selectedNormal", selectedCoords, selectedNormal);
 
 
     if (selectedCoords && selectedNormal) { // verify block is selected

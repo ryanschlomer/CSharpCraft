@@ -59,20 +59,65 @@ public class GameHub : Hub
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task<Position> UpdatePlayer(float deltaTime, float xDelta, float yDelta, float zDelta, float dirX, float dirY, float dirZ)
+    //public async Task<Position> UpdatePlayer(float deltaTime, float dirX, float dirY, float dirZ, keyStates)
+    public async Task<Position> UpdatePlayer(PlayerUpdateData data)
     {
         var player = _playerManager.GetPlayer(Context.ConnectionId);
         if (player != null)
         {
+            int xDelta = 0, yDelta = 0, zDelta = 0;
+            if (data.KeyStates.TryGetValue("ArrowUp", out bool arrowUp) && arrowUp)
+            {
+                zDelta += 1;
+            }
+            if (data.KeyStates.TryGetValue("ArrowDown", out bool arrowDown) && arrowDown)
+            {
+                zDelta -= 1;
+            }
+            if (data.KeyStates.TryGetValue("ArrowLeft", out bool arrowLeft) && arrowLeft)
+            {
+                xDelta -= 1;
+            }
+            if (data.KeyStates.TryGetValue("ArrowRight", out bool arrowRight) && arrowRight)
+            {
+                xDelta += 1;
+            }
+            if (data.KeyStates.TryGetValue("Space", out bool space) && space) //Jump
+            {
+                yDelta += 1;
+            }
+            if (data.KeyStates.TryGetValue("Sneak", out bool sneak) && sneak)
+            {//check sneak, run, and then walk
+                player.CurrentSpeed = player.SneakSpeed;
+            }
+            else if (data.KeyStates.TryGetValue("Run", out bool run) && run)
+            {
+                player.CurrentSpeed = player.RunSpeed;
+            }
+            else
+            {
+                player.CurrentSpeed = player.Speed;
+            }
+
+            if (data.KeyStates.TryGetValue("Fly", out bool fly) && fly)
+            {//flying isn't implemented. increase jump height for now
+                player.CurrentJumpHeight = 2.2f;
+            }
+            else
+            {
+                player.CurrentJumpHeight = player.JumpHeight;
+            }
+
+
             Vector3 movementDelta = new Vector3(xDelta, yDelta, zDelta);
             if (movementDelta != Vector3.Zero)
             {
                 Console.WriteLine("mevementDelta: " + movementDelta);
             }
-            Vector3 lookDirection = new Vector3(dirX, dirY, dirZ);
+            Vector3 lookDirection = new Vector3(data.DirectionX, data.DirectionY, data.DirectionZ);
             //movementDelta = new Vector3(xDelta, 1, zDelta);
             // Update the player's intended direction and position
-            _physics.HandlePlayerInput(player, movementDelta, lookDirection, deltaTime);
+            _physics.HandlePlayerInput(player, movementDelta, lookDirection, data.DeltaTime);
 
             GetChunksToLoad(player);
 
@@ -204,8 +249,8 @@ public class GameHub : Hub
                             int blockY = (int)y + dy;
                             int blockZ = (int)z + dz;
                             byte currentBlockType = await chunkService.GetBlockType(blockX, blockY, blockZ);
-                             
-                            if(currentBlockType == 0)
+
+                            if (currentBlockType == 0)
                             {//if it's an air block but not the one we are deleting.
                                 //we need to send the deleted block back to the client
                                 if (blockX != (int)x || blockY != (int)y || blockZ != (int)z)
@@ -222,7 +267,7 @@ public class GameHub : Hub
                                 Z = blockZ,
                                 BlockType = currentBlockType,
                                 ChunkId = chunkId
-                        }); ;
+                            }); ;
                         }
                     }
                 }
@@ -277,5 +322,13 @@ public class GameHub : Hub
 
         return null;
     }
-}
 
+    public class PlayerUpdateData
+    {
+        public float DeltaTime { get; set; }
+        public float DirectionX { get; set; }
+        public float DirectionY { get; set; }
+        public float DirectionZ { get; set; }
+        public Dictionary<string, bool> KeyStates { get; set; }
+    }
+}

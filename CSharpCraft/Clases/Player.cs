@@ -55,9 +55,15 @@ namespace CSharpCraft.Clases
         public float Radius { get; } = 0.45f;
         public float EyeHeight { get; }
         public float Speed { get; } = 3f;
-        public float MaxSpeed { get; } = 6f;
+        public float CurrentSpeed { get; set; } = 3f;
+        public float RunSpeed { get; } = 10f;
+        public float MaxSpeed { get; } = 10f;
+        public float SneakSpeed { get; } = 1.5f;
         public bool AutoJumping { get; set; } = false;
         //public Item.Item CurrentItem { get; set; }
+
+        public float CurrentJumpHeight { get; set; } = 1.1f;
+        public float JumpHeight { get; } = 1.1f;
 
         public Position CameraPosition { 
             get {

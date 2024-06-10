@@ -8,7 +8,7 @@ namespace CSharpCraft.Clases
     {
 
         public static readonly int ChunkWidth = 16;
-        public static readonly int ChunkHeight = 64;
+        public static readonly int ChunkHeight = 128;
         public static int ChunkViewRadius = 1; //This needs to be on the player object
 
         public static readonly int TextureAtlasSizeInBlocks = 4;

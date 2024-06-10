@@ -8,7 +8,7 @@ async function getPlayerHotbarItems() {
 
         PlayerHotBar = await connection.invoke("GetPlayerHotbarItems");
 
-        console.log("PlayerhotBar: ", PlayerHotBar);
+        //console.log("PlayerhotBar: ", PlayerHotBar);
 
         await getSelectedItemFromServer();
 
@@ -145,7 +145,8 @@ async function LoadTool(modelPath) {
     console.log("mesh: ", mesh);
 
     // Position the pickaxe in front of the camera
-    mesh.position.set(0.75, -0.25, -0.5);
+    mesh.position.set(0.75, -0.55, -0.5);
+    //mesh.position.set(0.75, -0.25, -0.5);
     mesh.scale.set(0.5, 0.5, 0.5);
     mesh.rotation.z = Math.PI / 2;
     mesh.rotation.y = Math.PI + 0.5;

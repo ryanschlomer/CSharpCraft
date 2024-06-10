@@ -59,12 +59,14 @@ public class Physics
         Vector3 forward = Vector3.Normalize(lookDirection);
 
         // Calculate the movement vector based on current input
-        Vector3 currentMovement = (forward * movementDelta.Z + right * -movementDelta.X) * player.Speed;
+        Vector3 currentMovement = (forward * movementDelta.Z + right * -movementDelta.X) * player.CurrentSpeed;
+        Console.WriteLine(player.CurrentSpeed);
+        Console.WriteLine(currentMovement);
 
         // If deltaY is 1, treat it as a jump request
         if (movementDelta.Y == 1 && player.IsOnGround)
         {
-            float jumpVelocity = CalculateJumpVelocity(1.1f);
+            float jumpVelocity = CalculateJumpVelocity(player);
 
             // Jump, but maintain existing horizontal momentum
             player.Velocity = new Vector3(player.Velocity.X, jumpVelocity, player.Velocity.Z);
@@ -82,10 +84,10 @@ public class Physics
         player.Position += player.Velocity * stepSize;
     }
 
-    private float CalculateJumpVelocity(float jumpHeight)
+    private float CalculateJumpVelocity(Player player)
     {
         // Using the formula v = sqrt(2 * g * h)
-        return (float)Math.Sqrt(2 * Gravity * jumpHeight);
+        return (float)Math.Sqrt(2 * Gravity * player.CurrentJumpHeight);
     }
 
     private void DetectCollisions(Player player)
@@ -185,7 +187,7 @@ public class Physics
                     var aboveBlock = new Vector3(block.X, block.Y + 1, block.Z);
                     if (!ChunkService.IsBlockSolid((int)aboveBlock.X, (int)aboveBlock.Y, (int)aboveBlock.Z))
                     {
-                        float jumpVelocity = CalculateJumpVelocity(1.1f);
+                        float jumpVelocity = CalculateJumpVelocity(player);
                         player.Velocity = new Vector3(player.Velocity.X, jumpVelocity, player.Velocity.Z);
                         player.IsOnGround = false;
                         player.AutoJumping = true; // Set AutoJumping flag
